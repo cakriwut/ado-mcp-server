@@ -152,6 +152,65 @@ To modify or extend the server:
 3. Build with `npm run build` when ready
 4. Test using the inspector: `npm run inspector`
 
+## Testing
+
+The project includes test scripts for all MCP Server Commands. These tests help verify that the server can communicate with Azure DevOps correctly.
+
+### Prerequisites for Testing
+
+1. Make sure you have a valid `.env` file in the root directory with the following variables:
+   ```
+   AZURE_DEVOPS_ORG=your-organization
+   AZURE_DEVOPS_PROJECT=your-project
+   AZURE_DEVOPS_PAT=your-personal-access-token
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+### Running Tests
+
+#### Quick Tests
+
+For a quick test of your Azure DevOps connection:
+
+```bash
+npm run test:quick
+```
+
+This runs a simple JavaScript test that only tests the list_projects command.
+
+For a more comprehensive test of all MCP Server Commands:
+
+```bash
+npm run test:simple
+```
+
+This runs a simple JavaScript test that tests all the main commands in one file.
+
+#### TypeScript Tests
+
+To run all TypeScript tests:
+
+```bash
+npm test
+```
+
+To run tests for specific command categories:
+
+```bash
+npm run test:work-item     # Test Work Item Tools
+npm run test:board         # Test Board Tools
+npm run test:wiki          # Test Wiki Tools
+npm run test:project       # Test Project Tools
+npm run test:pipeline      # Test Pipeline Tools
+npm run test:pull-request  # Test Pull Request Tools
+```
+
+See the [tests/README.md](tests/README.md) file for more information about the tests.
+
 ## License
 
 MIT License - See [LICENSE](LICENSE) for details

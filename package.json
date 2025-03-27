@@ -13,9 +13,19 @@
   ],
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "build:tests": "tsc -p tests/tsconfig.json",
     "prepare": "npm run build",
     "watch": "tsc --watch",
-    "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "test": "npm run build:tests && node build/tests/index.js",
+    "test:work-item": "npm run build:tests && node build/tests/work-item-tools.js",
+    "test:board": "npm run build:tests && node build/tests/board-tools.js",
+    "test:wiki": "npm run build:tests && node build/tests/wiki-tools.js",
+    "test:project": "npm run build:tests && node build/tests/project-tools.js",
+    "test:pipeline": "npm run build:tests && node build/tests/pipeline-tools.js",
+    "test:pull-request": "npm run build:tests && node build/tests/pull-request-tools.js",
+    "test:simple": "node tests/simple-test.js",
+    "test:quick": "node tests/quick-test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
@@ -25,6 +35,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
+    "dotenv": "^16.4.7",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }
