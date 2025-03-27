@@ -6,13 +6,14 @@
   "private": true,
   "type": "module",
   "bin": {
-    "azure-devops-server": "./build/index.js"
+    "azure-devops-server": "./build/index.js",
+    "azure-devops-cli": "./build/cli/index.js"
   },
   "files": [
     "build"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\" && node -e \"require('fs').chmodSync('build/cli/index.js', '755')\"",
     "build:tests": "tsc -p tests/tsconfig.json",
     "prepare": "npm run build",
     "watch": "tsc --watch",
@@ -25,12 +26,14 @@
     "test:pipeline": "npm run build:tests && node build/tests/pipeline-tools.js",
     "test:pull-request": "npm run build:tests && node build/tests/pull-request-tools.js",
     "test:simple": "node tests/simple-test.js",
-    "test:quick": "node tests/quick-test.js"
+    "test:quick": "node tests/quick-test.js",
+    "test:cli": "node tests/cli-test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
     "@types/node-fetch": "^2.6.12",
     "azure-devops-node-api": "^14.1.0",
+    "commander": "^13.1.0",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
