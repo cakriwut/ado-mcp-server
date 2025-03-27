@@ -1,4 +1,4 @@
-const { getCoreApi } = require('./utils');
+import { getCoreApi } from './utils.js';
 
 /**
  * Test for list_projects tool
@@ -38,11 +38,12 @@ async function runTests() {
 }
 
 // Run the tests if this file is executed directly
-if (require.main === module) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
   runTests();
 }
 
 // Export functions
-module.exports = {
+export {
   testListProjects
 };

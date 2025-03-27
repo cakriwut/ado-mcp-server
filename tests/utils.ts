@@ -1,5 +1,5 @@
-const dotenv = require('dotenv');
-const azdev = require('azure-devops-node-api');
+import dotenv from 'dotenv';
+import * as azdev from 'azure-devops-node-api';
 
 // Use any type for API interfaces since we don't have type definitions
 type IWorkItemTrackingApi = any;
@@ -64,7 +64,7 @@ async function getWorkApi(): Promise<IWorkApi> {
 }
 
 // Export common variables and functions
-module.exports = {
+export {
   connection,
   project,
   orgUrl,
