@@ -11,6 +11,7 @@
 
 ## Wiki Tools
 - [X] get_wikis
+- [ ] list_wiki_pages (Error: Wiki not found)
 - [ ] get_wiki_page (Error: Wiki not found)
 - [ ] create_wiki (Error: Parameter 'MappedPath' is not expected for Project Wiki creation)
 - [ ] update_wiki_page (Error: Wiki not found)

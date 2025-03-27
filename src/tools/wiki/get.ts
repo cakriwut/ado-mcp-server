@@ -9,6 +9,13 @@ interface GetWikiPageArgs {
   includeContent?: boolean;
 }
 
+interface ListWikiPagesArgs {
+  wikiIdentifier: string;
+  pageViewsForDays?: number;
+  top?: number;
+  continuationToken?: string;
+}
+
 export async function getWikis(args: Record<string, never>, config: AzureDevOpsConfig) {
   AzureDevOpsConnection.initialize(config);
   const connection = AzureDevOpsConnection.getInstance();
@@ -24,6 +31,56 @@ export async function getWikis(args: Record<string, never>, config: AzureDevOpsC
       },
     ],
   };
+}
+
+export async function listWikiPages(args: ListWikiPagesArgs, config: AzureDevOpsConfig) {
+  if (!args.wikiIdentifier) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      'Wiki identifier is required'
+    );
+  }
+
+  AzureDevOpsConnection.initialize(config);
+  const connection = AzureDevOpsConnection.getInstance();
+  const wikiApi = await connection.getWikiApi();
+
+  try {
+    // Get wiki information to verify it exists
+    const wiki = await wikiApi.getWiki(config.project, args.wikiIdentifier);
+    if (!wiki || !wiki.id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Wiki ${args.wikiIdentifier} not found`
+      );
+    }
+
+    // Create request parameters for getting wiki pages
+    const pagesBatchRequest = {
+      pageViewsForDays: args.pageViewsForDays || 30,
+      top: args.top || 100,
+      continuationToken: args.continuationToken
+    };
+
+    // Get wiki pages
+    const wikiPages = await wikiApi.getPagesBatch(pagesBatchRequest, config.project, args.wikiIdentifier);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(wikiPages, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    if (error instanceof McpError) throw error;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Failed to get wiki pages: ${errorMessage}`
+    );
+  }
 }
 
 export async function getWikiPage(args: GetWikiPageArgs, config: AzureDevOpsConfig) {

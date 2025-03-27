@@ -1,4 +1,4 @@
-import { getWikis } from './get.js';
+import { getWikis, listWikiPages } from './get.js';
 import { getWikiPage } from './get.js';
 import { createWiki } from './create.js';
 import { updateWikiPage } from './update.js';
@@ -11,6 +11,32 @@ const definitions = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+  },
+  {
+    name: 'list_wiki_pages',
+    description: 'List pages in a wiki in the project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        wikiIdentifier: {
+          type: 'string',
+          description: 'Wiki identifier',
+        },
+        pageViewsForDays: {
+          type: 'number',
+          description: 'Last N days from the current day for which page views is to be returned (optional, defaults to 30)',
+        },
+        top: {
+          type: 'number',
+          description: 'Total count of pages to return (optional, defaults to 100)',
+        },
+        continuationToken: {
+          type: 'string',
+          description: 'Continuation token for pagination (optional)',
+        },
+      },
+      required: ['wikiIdentifier'],
     },
   },
   {
@@ -92,6 +118,8 @@ const definitions = [
 export const wikiTools = {
   initialize: (config: AzureDevOpsConfig) => ({
     getWikis: (args: Record<string, never>) => getWikis(args, config),
+    listWikiPages: (args: { wikiIdentifier: string; pageViewsForDays?: number; top?: number; continuationToken?: string }) =>
+      listWikiPages(args, config),
     getWikiPage: (args: { wikiIdentifier: string; path: string; version?: string; includeContent?: boolean }) =>
       getWikiPage(args, config),
     createWiki: (args: { name: string; projectId?: string; mappedPath?: string }) =>

@@ -33,6 +33,48 @@ async function testGetWikis() {
 }
 
 /**
+ * Test for list_wiki_pages tool
+ * This tool retrieves a list of wiki pages in a project
+ */
+async function testListWikiPages() {
+  try {
+    console.log('Testing list_wiki_pages tool...');
+    
+    // First get all wikis
+    const wikis = await testGetWikis();
+    
+    if (!wikis || wikis.length === 0) {
+      console.log('No wikis found to test list_wiki_pages');
+      return null;
+    }
+    
+    const wikiApi = await getWikiApi();
+    const wikiIdentifier = wikis[0].id;
+    
+    // Create a request to get wiki pages
+    const pagesBatchRequest = {
+      // Optional: Get pages viewed in the last 30 days
+      pageViewsForDays: 30,
+      // Optional: Maximum number of pages to return
+      top: 100
+      // Optional: continuationToken can be used for pagination
+    };
+    
+    // Get the wiki pages
+    const wikiPages = await wikiApi.getPagesBatch(pagesBatchRequest, projectName, wikiIdentifier);
+    
+    console.log('Successfully retrieved wiki pages:');
+    console.log(JSON.stringify(wikiPages, null, 2));
+    
+    return wikiPages;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error testing list_wiki_pages:', errorMessage);
+    throw error;
+  }
+}
+
+/**
  * Test for get_wiki_page tool
  * This tool retrieves a wiki page by path
  */
@@ -152,6 +194,7 @@ async function runTests() {
   try {
     // Uncomment the tests you want to run
     // await testGetWikis();
+    // await testListWikiPages();
     // await testGetWikiPage();
     // await testCreateWiki();
     // await testUpdateWikiPage();
@@ -171,6 +214,7 @@ if (isMainModule) {
 
 export {
   testGetWikis,
+  testListWikiPages,
   testGetWikiPage,
   testCreateWiki,
   testUpdateWikiPage
