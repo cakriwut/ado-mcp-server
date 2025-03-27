@@ -19,12 +19,16 @@ export async function createWiki(args: CreateWikiArgs, config: AzureDevOpsConfig
   const wikiApi = await connection.getWikiApi();
 
   try {
-    const wikiCreateParams = {
+    const wikiCreateParams: any = {
       name: args.name,
       projectId: args.projectId || config.project,
-      mappedPath: args.mappedPath || '/',
       type: WikiType.ProjectWiki,
     };
+
+    // Only add mappedPath for non-ProjectWiki types or if explicitly provided
+    if (args.mappedPath && wikiCreateParams.type !== WikiType.ProjectWiki) {
+      wikiCreateParams.mappedPath = args.mappedPath;
+    }
 
     const wiki = await wikiApi.createWiki(wikiCreateParams, config.project);
 

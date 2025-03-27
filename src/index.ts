@@ -139,6 +139,9 @@ class AzureDevOpsServer {
           case 'get_wikis':
             result = await tools.wiki.getWikis(request.params.arguments);
             break;
+          case 'list_wiki_pages':
+            result = await tools.wiki.listWikiPages(request.params.arguments);
+            break;
           case 'get_wiki_page':
             result = await tools.wiki.getWikiPage(request.params.arguments);
             break;
