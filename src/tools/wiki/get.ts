@@ -53,7 +53,7 @@ export async function listWikiPages(args: ListWikiPagesArgs, config: AzureDevOps
     // Create request parameters for getting wiki pages
     const pagesBatchRequest = {
       pageViewsForDays: args.pageViewsForDays || 30,
-      top: args.top || 100,
+      top: args.top || 20,
       continuationToken: args.continuationToken
     };
 
@@ -63,11 +63,19 @@ export async function listWikiPages(args: ListWikiPagesArgs, config: AzureDevOps
     // Get wiki pages using the Azure DevOps Node API directly
     const wikiPages = await wikiApi.getPagesBatch(pagesBatchRequest, projectName, args.wikiIdentifier);
 
+    // Extract only the required fields from each wiki page
+    const formattedPages = wikiPages.map((page: any) => ({
+      path: page.path,
+      id: page.id,
+      wikiIdentifier: args.wikiIdentifier,
+      projectName: projectName
+    }));
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(wikiPages, null, 2),
+          text: JSON.stringify(formattedPages, null, 2),
         },
       ],
     };
