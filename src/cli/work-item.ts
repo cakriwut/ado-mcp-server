@@ -54,13 +54,15 @@ export function workItemCommands(program: Command): void {
     .description('List work items using WIQL query')
     .requiredOption('-q, --query <query>', 'WIQL query to filter work items')
     .option('-p, --project <projectName>', 'Project name (defaults to the one in config)')
+    .option('--page <page>', 'Page number for pagination (defaults to 1)', '1')
     .action(async (options) => {
       try {
         const config = createConfig();
         const tools = workItemTools.initialize(config);
         
         const result = await tools.listWorkItems({
-          query: options.query
+          query: options.query,
+          page: parseInt(options.page, 10)
         });
         
         // Ensure we're outputting valid JSON
@@ -117,6 +119,33 @@ export function workItemCommands(program: Command): void {
         const result = await tools.updateWorkItem({
           id: parseInt(options.id, 10),
           document
+        });
+        
+        // Ensure we're outputting valid JSON
+        console.log(JSON.stringify(result, null, 2));
+      } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // Search for work items
+  workItem
+    .command('search')
+    .description('Search for work items using text search')
+    .requiredOption('-s, --search-text <searchText>', 'Text to search for in work items')
+    .option('-t, --top <top>', 'Maximum number of results to return (default: 10)')
+    .option('--skip <skip>', 'Number of results to skip (for pagination)')
+    .option('-p, --project <projectName>', 'Project name (defaults to the one in config)')
+    .action(async (options) => {
+      try {
+        const config = createConfig();
+        const tools = workItemTools.initialize(config);
+        
+        const result = await tools.searchWorkItems({
+          searchText: options.searchText,
+          top: options.top ? parseInt(options.top, 10) : undefined,
+          skip: options.skip ? parseInt(options.skip, 10) : undefined
         });
         
         // Ensure we're outputting valid JSON

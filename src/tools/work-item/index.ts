@@ -1,7 +1,8 @@
 import { getWorkItem } from './get.js';
-import { listWorkItems } from './list.js';
+import { listWorkItems, WorkItemListArgs } from './list.js';
 import { createWorkItem } from './create.js';
 import { updateWorkItem } from './update.js';
+import { searchWorkItems, SearchWorkItemsArgs } from './search.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
 import type { WorkItem, WorkItemBatchGetRequest, Wiql } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 import type { JsonPatchOperation } from 'azure-devops-node-api/interfaces/common/VSSInterfaces.js';
@@ -47,6 +48,28 @@ const definitions = [
     },
   },
   {
+    name: 'search_work_items',
+    description: 'Search for work items using text search',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        searchText: {
+          type: 'string',
+          description: 'Text to search for in work items',
+        },
+        top: {
+          type: 'number',
+          description: 'Maximum number of results to return (default: 10)',
+        },
+        skip: {
+          type: 'number',
+          description: 'Number of results to skip (for pagination)',
+        },
+      },
+      required: ['searchText'],
+    },
+  },
+  {
     name: 'list_work_items',
     description: 'List work items from a board',
     inputSchema: {
@@ -55,6 +78,10 @@ const definitions = [
         query: {
           type: 'string',
           description: 'WIQL query to filter work items',
+        },
+        page: {
+          type: 'number',
+          description: 'Page number for pagination (defaults to 1)',
         },
       },
       required: ['query'],
@@ -137,9 +164,10 @@ const definitions = [
 export const workItemTools = {
   initialize: (config: AzureDevOpsConfig) => ({
     getWorkItem: (args: WorkItemBatchGetRequest) => getWorkItem(args, config),
-    listWorkItems: (args: Wiql) => listWorkItems(args, config),
+    listWorkItems: (args: WorkItemListArgs) => listWorkItems(args, config),
     createWorkItem: (args: { type: string; document: JsonPatchOperation[] }) => createWorkItem(args, config),
     updateWorkItem: (args: { id: number; document: JsonPatchOperation[] }) => updateWorkItem(args, config),
+    searchWorkItems: (args: SearchWorkItemsArgs) => searchWorkItems(args, config),
     definitions,
   }),
   definitions,

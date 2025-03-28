@@ -11,11 +11,26 @@ export async function getWorkItem(args: WorkItemBatchGetRequest, config: AzureDe
   AzureDevOpsConnection.initialize(config);
   const connection = AzureDevOpsConnection.getInstance();
   const workItemTrackingApi = await connection.getWorkItemTrackingApi();
+  
+  // Determine whether to use fields or expand
+  let fieldsToUse = undefined;
+  let expandToUse = undefined;
+  
+  if (args.fields) {
+    // If fields are explicitly provided, use them and don't use expand
+    fieldsToUse = args.fields;
+    expandToUse = undefined;
+  } else {
+    // If fields are not provided, use expand
+    fieldsToUse = undefined;
+    expandToUse = args.$expand !== undefined ? args.$expand : WorkItemExpand.All;
+  }
+  
   const workItems = await workItemTrackingApi.getWorkItems(
     args.ids,
-    args.fields || ['System.Id', 'System.Title', 'System.State', 'System.Description'],
+    fieldsToUse,
     args.asOf,
-    WorkItemExpand.All,
+    expandToUse,
     args.errorPolicy,
     config.project
   );
