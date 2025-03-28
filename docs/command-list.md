@@ -16,7 +16,7 @@
 - [X] create_wiki (Tested, no need to retest. Please skip.)
 - [ ] update_wiki_page (Error: Wiki not found)
 - [ ] create_wiki_page (New tool to create a wiki page)
-- [ ] search_wiki_page (Search wiki using in Azure Devops by 'search text')
+- [X] search_wiki_page 
 
 ## Project Tools
 - [X] list_projects
@@ -128,15 +128,46 @@ node .\build\cli\index.js wiki create-page -w <wikiIdentifier> -p <path> -c <con
    - Command: `node .\build\cli\index.js wiki update -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test MCP Page" -c "# Test MCP Page..." --project Cybersmart-Next`
    - Issue: The update_wiki_page tool now has the projectName parameter, but there seems to be an authorization issue with the Azure DevOps API
 
-5. create_wiki_page - ❌ Error: Unknown tool
-   - Failed to create wiki page with error: "Unknown tool: create_wiki_page"
+5. create_wiki_page - ❌ Error: Unauthorized
+   - Failed to create wiki page with error: "Failed to create wiki page: Failed to update wiki page: Unauthorized"
    - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "create_wiki_page"
-   - Issue: The create_wiki_page tool has been implemented but requires restarting the MCP server to register the new tool
+   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", path: "/Model Context Protocol (MCP)", content: "# Model Context Protocol (MCP)..."
+   - Issue: The tool is implemented but there seems to be an authorization issue with the Azure DevOps API
 
-5. create_wiki_page - ⚠️ Not Implemented
-   - This is a new tool that needs to be implemented
-   - Should allow users to create a new wiki page in a specific wiki of a project
-   - Recommended implementation provided in the recommendations section below
+### Wiki Tools CLI Sequence Test (2025-03-28)
+1. list_projects - ✅ Success
+   - Successfully retrieved all projects in the organization
+   - Found "Cybersmart-Next" project with ID "48bebfa4-fb32-4e53-84f2-48aa51b85a1e"
+
+2. get_wikis - ✅ Success
+   - Successfully retrieved wiki for Cybersmart-Next project
+   - Wiki ID: "40a12984-af55-49fc-9b4d-378a6ef44d8d", Name: "Cybersmart-Next.wiki"
+
+3. search_wiki_page - ✅ Success (No Results)
+   - Successfully searched for wiki pages containing "MCP"
+   - No pages found with the search term "MCP"
+   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "search_wiki_page"
+   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", searchText: "MCP", includeContent: true
+
+4. list_wiki_pages - ✅ Success
+   - Successfully retrieved all wiki pages in the Cybersmart-Next wiki
+   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "list_wiki_pages"
+   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d"
+
+5. get_wiki_page - ✅ Success
+   - Successfully retrieved content of the "Getting Started" page
+   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "get_wiki_page"
+   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", path: "/Getting Started", includeContent: true
+
+6. update_wiki_page - ❌ Error: Unauthorized
+   - Failed to update wiki page with error: "Wiki 40a12984-af55-49fc-9b4d-378a6ef44d8d not found"
+   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "update_wiki_page"
+   - Issue: There seems to be an issue with the wiki identifier format or permissions
+
+7. create_wiki_page - ❌ Error: Unauthorized
+   - Failed to create wiki page with error: "Failed to create wiki page: Failed to update wiki page: Unauthorized"
+   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "create_wiki_page"
+   - Issue: There seems to be an authorization issue with the Azure DevOps API
 
 ### Implemented Changes for Wiki Tools
 
