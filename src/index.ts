@@ -129,6 +129,15 @@ class AzureDevOpsServer {
           case 'list_work_items':
             result = await tools.workItem.listWorkItems(request.params.arguments);
             break;
+          case 'search_work_items':
+            result = await tools.workItem.searchWorkItems(request.params.arguments);
+            break;
+          case 'create_work_item':
+            result = await tools.workItem.createWorkItem(request.params.arguments);
+            break;
+          case 'update_work_item':
+            result = await tools.workItem.updateWorkItem(request.params.arguments);
+            break;
           
           // Board Tools
           case 'get_boards':

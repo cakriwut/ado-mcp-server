@@ -1,10 +1,11 @@
 # Azure DevOps MCP Server Commands
 
 ## Work Item Tools
-- [ ] get_work_item (Error: The expand parameter can not be used with the fields parameter)
-- [X] list_work_items (Response too large and breaks the model, must have default limit)
-- [ ] create_work_item (Error: Unknown tool: create_work_item)
-- [ ] update_work_item (Error: Unknown tool: update_work_item)
+- [X] get_work_item
+- [X] list_work_items 
+- [X] create_work_item
+- [X] update_work_item
+- [X] search_work_items
 
 ## Board Tools
 - [X] get_boards
@@ -105,6 +106,128 @@ node .\build\cli\index.js wiki update -w <wikiIdentifier> -p <path> -c <content>
 # Create a new wiki page
 node .\build\cli\index.js wiki create-page -w <wikiIdentifier> -p <path> -c <content> --project <projectName>
 ```
+
+### Work Item CLI Commands
+```bash
+# Get work items by IDs
+node .\build\cli\index.js work-item get -i <id1,id2,id3> [-f <field1,field2>] [-p <projectName>]
+
+# List work items using WIQL query
+node .\build\cli\index.js work-item list -q "<WIQL query>" [--page <pageNumber>] [-p <projectName>]
+
+# Create a new work item
+node .\build\cli\index.js work-item create -t <type> -d '<JSON patch document>' [-p <projectName>]
+
+# Update an existing work item
+node .\build\cli\index.js work-item update -i <id> -d '<JSON patch document>' [-p <projectName>]
+
+# Search for work items
+node .\build\cli\index.js work-item search -s "<search text>" [-t <maxResults>] [--skip <skipCount>] [-p <projectName>]
+```
+
+#### Example Work Item Commands
+```bash
+# Get a specific work item by ID
+node .\build\cli\index.js work-item get -i 42
+
+# Get multiple work items with specific fields
+node .\build\cli\index.js work-item get -i 42,43,44 -f System.Title,System.State
+
+# List recent work items in a project
+node .\build\cli\index.js work-item list -q "SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = 'MyProject' ORDER BY [System.ChangedDate] DESC"
+
+# List work items with pagination (page 2)
+node .\build\cli\index.js work-item list -q "SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = 'MyProject' ORDER BY [System.ChangedDate] DESC" --page 2
+
+# Create a new task
+node .\build\cli\index.js work-item create -t "Task" -d '[{"op":"add","path":"/fields/System.Title","value":"New Task"},{"op":"add","path":"/fields/System.Description","value":"Task description"}]'
+
+# Update a work item's state
+node .\build\cli\index.js work-item update -i 42 -d '[{"op":"replace","path":"/fields/System.State","value":"Doing"}]'
+
+# Search for work items containing "bug"
+node .\build\cli\index.js work-item search -s "bug"
+
+# Search with pagination (get the second page of results)
+node .\build\cli\index.js work-item search -s "feature" -t 10 --skip 10
+
+# Search in a specific project
+node .\build\cli\index.js work-item search -s "documentation" -p "MyProject"
+```
+
+### Work Item CLI Test Results (2025-03-28)
+
+#### 1. work-item list command
+✅ **Success**
+- Command: `node .\build\cli\index.js work-item list -q "SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = 'YourProject' ORDER BY [System.ChangedDate] DESC"`
+- Result: Successfully retrieved work items based on the WIQL query
+- Returns a list of work items with their IDs, titles, and states
+
+#### 2. work-item get command
+✅ **Success**
+- Command: `node .\build\cli\index.js work-item get -i 42`
+- Result: Successfully retrieved work item details
+- Returns the complete work item object with all fields
+
+#### 3. work-item create command
+✅ **Success**
+- Command: `node .\build\cli\index.js work-item create -t "Task" -d '[{"op":"add","path":"/fields/System.Title","value":"Test Task Created by CLI"},{"op":"add","path":"/fields/System.Description","value":"This is a test task created by the CLI test script"},{"op":"add","path":"/fields/System.Tags","value":"Test;CLI;Automation"}]'`
+- Result: Successfully created a new work item
+- Returns the created work item object with assigned ID
+
+#### 4. work-item update command
+✅ **Success**
+- Command: `node .\build\cli\index.js work-item update -i 42 -d '[{"op":"replace","path":"/fields/System.Title","value":"Updated Test Task by CLI"},{"op":"replace","path":"/fields/System.State","value":"Active"}]'`
+- Result: Successfully updated the work item
+- Returns the updated work item object with the new field values
+
+#### Complete Workflow Test
+✅ **Success**
+- Created a new work item using the create command
+- Retrieved the created work item using the get command
+- Updated the work item using the update command
+- Listed work items to verify the changes
+- All operations completed successfully
+
+These improvements make the Work Item CLI commands fully functional and reliable for use in managing Azure DevOps work items.
+
+### Work Item MCP Tool Test Results (2025-03-29)
+
+#### 1. get_work_item
+✅ **Success**
+- Tool: `get_work_item`
+- Arguments: `{ "ids": [17521] }`
+- Result: Successfully retrieved work item details
+- Returns the work item object with ID, state, title, description, and URL
+
+#### 2. search_work_items
+✅ **Success**
+- Tool: `search_work_items`
+- Arguments: `{ "searchText": "Test Task by CLI" }`
+- Result: Successfully searched for work items
+- Returns work items matching the search text with their IDs, states, titles, and URLs
+
+#### 3. create_work_item
+✅ **Success**
+- Tool: `create_work_item`
+- Arguments: `{ "type": "Task", "document": [{"op":"add","path":"/fields/System.Title","value":"Test Task Created by MCP Tool"},{"op":"add","path":"/fields/System.Description","value":"This is a test task created by the MCP tool test"},{"op":"add","path":"/fields/System.Tags","value":"Test;MCP;Automation"}] }`
+- Result: Successfully created a new work item
+- Returns the created work item object with assigned ID and all fields
+
+#### 4. update_work_item
+✅ **Success**
+- Tool: `update_work_item`
+- Arguments: `{ "id": 17521, "document": [{"op":"replace","path":"/fields/System.Title","value":"Updated Test Task by MCP Tool"},{"op":"replace","path":"/fields/System.Description","value":"This is a test task updated by the MCP tool test"}] }`
+- Result: Successfully updated the work item
+- Returns the updated work item object with the new field values
+
+#### Fixed Issues
+- Added missing tools to src/index.ts switch statement:
+  - search_work_items
+  - create_work_item
+  - update_work_item
+- These tools were already defined in src/tools/work-item/index.ts but were not registered in the main switch statement
+- After fixing, all work item tools are now working correctly through both CLI and MCP interfaces
 
 ### Wiki Tools Test (2025-03-28) - Latest MCP Tool Test Results
 1. get_wikis - ✅ Success
