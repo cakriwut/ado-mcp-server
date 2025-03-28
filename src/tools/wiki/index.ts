@@ -57,6 +57,10 @@ const definitions = [
           type: 'string',
           description: 'Page path',
         },
+        projectName: {
+          type: 'string',
+          description: 'Project name (optional, defaults to the one in config)',
+        },
         version: {
           type: 'string',
           description: 'Version (optional, defaults to main)',
@@ -124,7 +128,7 @@ export const wikiTools = {
     getWikis: (args: Record<string, never>) => getWikis(args, config),
     listWikiPages: (args: { wikiIdentifier: string; projectName?: string; pageViewsForDays?: number; top?: number; continuationToken?: string }) =>
       listWikiPages(args, config),
-    getWikiPage: (args: { wikiIdentifier: string; path: string; version?: string; includeContent?: boolean }) =>
+    getWikiPage: (args: { wikiIdentifier: string; path: string; projectName?: string; version?: string; includeContent?: boolean }) =>
       getWikiPage(args, config),
     createWiki: (args: { name: string; projectId?: string; mappedPath?: string }) =>
       createWiki(args, config),

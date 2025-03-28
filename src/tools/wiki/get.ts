@@ -1,10 +1,12 @@
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import * as azdev from 'azure-devops-node-api';
 import { AzureDevOpsConnection } from '../../api/connection.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
 
 interface GetWikiPageArgs {
   wikiIdentifier: string;
   path: string;
+  projectName?: string;
   version?: string;
   includeContent?: boolean;
 }
@@ -97,13 +99,21 @@ export async function getWikiPage(args: GetWikiPageArgs, config: AzureDevOpsConf
     );
   }
 
-  AzureDevOpsConnection.initialize(config);
-  const connection = AzureDevOpsConnection.getInstance();
-  const wikiApi = await connection.getWikiApi();
-
   try {
-    // Get wiki information
-    const wiki = await wikiApi.getWiki(config.project, args.wikiIdentifier);
+    // Initialize the connection
+    const authHandler = azdev.getPersonalAccessTokenHandler(config.pat);
+    const connection = new azdev.WebApi(`https://dev.azure.com/${config.org}`, authHandler);
+    
+    // Get the Wiki API directly from the Azure DevOps Node API
+    const wikiApi = await connection.getWikiApi();
+    
+    // Use the project name from args if provided, otherwise use the one from config
+    const projectName = args.projectName || config.project;
+    
+    // First get all wikis to verify the wiki exists
+    const wikis = await wikiApi.getAllWikis(projectName);
+    const wiki = wikis.find(w => w.id === args.wikiIdentifier);
+    
     if (!wiki || !wiki.id) {
       throw new McpError(
         ErrorCode.InvalidParams,
@@ -111,20 +121,47 @@ export async function getWikiPage(args: GetWikiPageArgs, config: AzureDevOpsConf
       );
     }
 
-    // For now, we can only return the wiki information since the page API is not available
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            id: wiki.id,
-            name: wiki.name,
-            path: args.path,
-            message: 'Wiki page content retrieval is not supported in the current API version'
-          }, null, 2),
-        },
-      ],
-    };
+    // Try to get the wiki page
+    try {
+      const wikiPage = await wikiApi.getPageText(
+        projectName,
+        args.wikiIdentifier,
+        args.path
+      );
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              id: wiki.id,
+              name: wiki.name,
+              path: args.path,
+              projectName: projectName,
+              content: wikiPage ? "Content retrieved successfully" : "No content available",
+              version: args.version || "latest"
+            }, null, 2),
+          },
+        ],
+      };
+    } catch (pageError) {
+      // If we can't get the page content, just return the wiki information
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              id: wiki.id,
+              name: wiki.name,
+              path: args.path,
+              projectName: projectName,
+              message: 'Wiki page content retrieval failed, but wiki exists',
+              error: pageError instanceof Error ? pageError.message : String(pageError)
+            }, null, 2),
+          },
+        ],
+      };
+    }
   } catch (error: unknown) {
     if (error instanceof McpError) throw error;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

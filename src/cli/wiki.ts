@@ -62,6 +62,7 @@ export function wikiCommands(program: Command): void {
     .description('Get a wiki page by path')
     .requiredOption('-w, --wiki <wikiIdentifier>', 'Wiki identifier')
     .requiredOption('-p, --path <path>', 'Page path')
+    .option('--project <projectName>', 'Project name (defaults to the one in config)')
     .option('-v, --version <version>', 'Version')
     .option('--include-content', 'Include page content')
     .action(async (options) => {
@@ -71,6 +72,7 @@ export function wikiCommands(program: Command): void {
         const result = await tools.getWikiPage({
           wikiIdentifier: options.wiki,
           path: options.path,
+          projectName: options.project,
           version: options.version,
           includeContent: options.includeContent
         });
