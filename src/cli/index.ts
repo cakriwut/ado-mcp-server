@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { program } from 'commander';
 import { wikiCommands } from './wiki.js';
+import { workItemCommands } from './work-item.js';
 import { createConfig } from '../config/environment.js';
 import * as dotenv from 'dotenv';
 
@@ -15,6 +16,9 @@ program
 
 // Add wiki commands
 wikiCommands(program);
+
+// Add work item commands
+workItemCommands(program);
 
 // Parse arguments
 program.parse(process.argv);

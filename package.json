@@ -27,7 +27,8 @@
     "test:pull-request": "npm run build:tests && node build/tests/pull-request-tools.js",
     "test:simple": "node tests/simple-test.js",
     "test:quick": "node tests/quick-test.js",
-    "test:cli": "node tests/cli-test.js"
+    "test:cli": "node tests/cli-test.js",
+    "test:cli-work-item": "npm run build && node tests/cli-work-item-test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
