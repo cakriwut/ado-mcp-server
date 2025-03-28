@@ -35,11 +35,22 @@ export async function getWorkItem(args: WorkItemBatchGetRequest, config: AzureDe
     config.project
   );
 
+  // Format the output to only include id, state, title, url, and description
+  const formattedWorkItems = workItems.map(item => {
+    return {
+      id: item.id,
+      state: item.fields?.['System.State'] || 'Unknown',
+      title: item.fields?.['System.Title'] || 'Untitled',
+      description: item.fields?.['System.Description'] || '',
+      url: item.url || item._links?.html?.href || ''
+    };
+  });
+
   return {
     content: [
       {
         type: 'text',
-        text: JSON.stringify(workItems, null, 2),
+        text: JSON.stringify(formattedWorkItems, null, 2),
       },
     ],
   };
