@@ -200,12 +200,51 @@ export class WikiApi {
     wikiIdentifier: string,
     path: string,
     content: string,
-    comment?: string
+    comment?: string,
+    projectName?: string
   ): Promise<WikiPageUpdateResponse> {
     const authHeader = await this.getAuthHeader();
     const encodedPath = encodeURIComponent(path);
+    
+    // Use the provided project name or the default one from config
+    const project = projectName || this.config.project;
+    
+    console.log(`WikiApi.updateWikiPage called with:
+    - wikiIdentifier: ${wikiIdentifier}
+    - path: ${path}
+    - projectName: ${projectName || '(using default)'}
+    - resolved project: ${project}
+    - content length: ${content?.length || 0} characters
+    - comment: ${comment || '(default comment)'}`);
+    
+    // Try to get the wiki first to verify it exists
+    try {
+      console.log(`Verifying wiki exists in project ${project}...`);
+      const wikiResponse = await fetch(`${this.config.orgUrl}/${project}/_apis/wiki/wikis/${wikiIdentifier}?api-version=7.0`, {
+        headers: {
+          Authorization: authHeader,
+        },
+      });
+      
+      if (wikiResponse.ok) {
+        const wiki = await wikiResponse.json();
+        console.log(`Wiki found: ${wiki.name} (${wiki.id})`);
+      } else {
+        console.log(`Wiki verification failed: ${wikiResponse.status} ${wikiResponse.statusText}`);
+        const responseText = await wikiResponse.text();
+        console.log(`Wiki verification response: ${responseText}`);
+      }
+    } catch (error) {
+      console.log(`Error verifying wiki: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    
+    // Use the full URL with project name
+    const url = `${this.config.orgUrl}/${project}/_apis/wiki/wikis/${wikiIdentifier}/pages?path=${encodedPath}&api-version=7.0`;
+    
+    console.log(`Updating wiki page at URL: ${url}`);
+    
     const response = await fetch(
-      `${this.baseUrl}/${wikiIdentifier}/pages?path=${encodedPath}&api-version=7.0`,
+      url,
       {
         method: 'PUT',
         headers: {
@@ -219,20 +258,28 @@ export class WikiApi {
       }
     );
 
+    console.log(`Response status: ${response.status} ${response.statusText}`);
+    
     if (response.status === 404) {
-      if (response.statusText.includes('Wiki not found')) {
+      const responseText = await response.text();
+      console.log(`404 Response body: ${responseText}`);
+      
+      if (responseText.includes('Wiki not found')) {
         throw new WikiNotFoundError(wikiIdentifier);
       }
       throw new WikiPageNotFoundError(wikiIdentifier, path);
     }
 
     if (!response.ok) {
+      const responseText = await response.text();
+      console.log(`Error response body: ${responseText}`);
+      
       throw new WikiError(
         `Failed to update wiki page: ${response.statusText}`,
         response.status,
         wikiIdentifier,
         path,
-        await response.text()
+        responseText
       );
     }
 

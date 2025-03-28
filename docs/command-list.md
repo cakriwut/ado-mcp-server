@@ -14,9 +14,9 @@
 - [X] list_wiki_pages
 - [X] get_wiki_page
 - [X] create_wiki (Tested, no need to retest. Please skip.)
-- [ ] update_wiki_page (Error: Wiki not found)
-- [ ] create_wiki_page (New tool to create a wiki page)
-- [X] search_wiki_page 
+- [X] update_wiki_page
+- [X] create_wiki_page
+- [X] search_wiki_page
 
 ## Project Tools
 - [X] list_projects
@@ -149,31 +149,56 @@ node .\build\cli\index.js wiki create-page -w <wikiIdentifier> -p <path> -c <con
    - Successfully retrieved wiki for Cybersmart-Next project
    - Wiki ID: "40a12984-af55-49fc-9b4d-378a6ef44d8d", Name: "Cybersmart-Next.wiki"
 
-3. search_wiki_page - ✅ Success (No Results)
+3. search_wiki_page - ✅ Success
    - Successfully searched for wiki pages containing "MCP"
-   - No pages found with the search term "MCP"
-   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "search_wiki_page"
-   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", searchText: "MCP", includeContent: true
+   - Found 11 pages with the search term "MCP" including our newly created page
+   - Command: `node .\build\cli\index.js wiki search -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -s "MCP" --project Cybersmart-Next`
+   - Fixed by updating the search implementation to use the correct Search API endpoint and properly process results
 
 4. list_wiki_pages - ✅ Success
    - Successfully retrieved all wiki pages in the Cybersmart-Next wiki
-   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "list_wiki_pages"
-   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d"
+   - Command: `node .\build\cli\index.js wiki pages -w 40a12984-af55-49fc-9b4d-378a6ef44d8d --project Cybersmart-Next`
 
 5. get_wiki_page - ✅ Success
-   - Successfully retrieved content of the "Getting Started" page
-   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "get_wiki_page"
-   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", path: "/Getting Started", includeContent: true
+   - Successfully retrieved content of wiki pages
+   - Command: `node .\build\cli\index.js wiki page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test Wiki MCP" --project Cybersmart-Next --include-content`
 
-6. update_wiki_page - ❌ Error: Unauthorized
-   - Failed to update wiki page with error: "Wiki 40a12984-af55-49fc-9b4d-378a6ef44d8d not found"
-   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "update_wiki_page"
-   - Issue: There seems to be an issue with the wiki identifier format or permissions
+6. update_wiki_page - ✅ Success
+   - Successfully updated wiki page with new content
+   - Command: `node .\build\cli\index.js wiki update -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test Wiki MCP" -c "..." --project Cybersmart-Next`
+   - Fixed by implementing proper ETag handling and using the PUT method with the correct headers
 
-7. create_wiki_page - ❌ Error: Unauthorized
-   - Failed to create wiki page with error: "Failed to create wiki page: Failed to update wiki page: Unauthorized"
-   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "create_wiki_page"
-   - Issue: There seems to be an authorization issue with the Azure DevOps API
+7. create_wiki_page - ✅ Success
+   - Successfully created a new wiki page
+   - Command: `node .\build\cli\index.js wiki create-page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test Wiki MCP" -c "..." --project Cybersmart-Next`
+   - Implementation uses the WikiApi.updateWikiPage method which creates the page if it doesn't exist
+
+### Wiki Tools Test Results Summary (2025-03-28)
+1. **create_wiki_page**: ✅ Successfully implemented and tested
+   - Created a new wiki page with content about MCP
+   - The page was correctly created with the specified content
+   - The implementation properly handles the wiki identifier and project name
+
+2. **search_wiki_page**: ✅ Successfully implemented and tested
+   - Fixed issues with the search implementation
+   - Now correctly returns results when searching for content
+   - Properly handles highlighting of search terms in results
+   - Includes metadata like file paths and URLs in results
+
+3. **update_wiki_page**: ✅ Successfully implemented and tested
+   - Fixed issues with the update implementation
+   - Now correctly updates existing wiki pages
+   - Properly handles ETag for concurrency control
+   - Returns appropriate success/error messages
+
+4. **Complete Workflow Test**: ✅ Successfully tested the full workflow
+   - Created a wiki page about MCP
+   - Searched for the page using keywords
+   - Updated the page with additional content about installing MCP
+   - Searched again to verify the updated content was indexed
+   - All operations completed successfully
+
+These improvements make the Wiki Tools fully functional and reliable for use in the MCP server.
 
 ### Implemented Changes for Wiki Tools
 
@@ -487,3 +512,35 @@ The update_wiki_page and create_wiki_page tools are currently failing with "Unau
        }
      });
    ```
+
+### Wiki Tools Specific Test Results (2025-03-28)
+
+#### 1. create_wiki_page "Test Wiki" in Cybersmart-Next wiki
+✅ **Success**
+- Command: `node .\build\cli\index.js wiki create-page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test Wiki MCP" -c "# Model Context Protocol (MCP)\n\nThe Model Context Protocol (MCP) is a standardized protocol for communication between AI models and external tools or data sources. It enables AI models to access real-time information, perform actions in the real world, and utilize specialized capabilities beyond their training data.\n\n## Key Features\n\n- **Tool Use**: Allows models to use external tools to perform actions\n- **Resource Access**: Enables models to access external data sources\n- **Standardized Communication**: Provides a consistent interface for model-tool interaction\n- **Enhanced Capabilities**: Extends what AI models can do beyond their training data" --project Cybersmart-Next`
+- Result: Successfully created a wiki page with content about MCP
+- Response included the created page details with path, ID, and URL
+
+#### 2. search_wiki_page based on keyword in the short description
+✅ **Success**
+- Command: `node .\build\cli\index.js wiki search -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -s "MCP" --project Cybersmart-Next`
+- Result: Successfully found the wiki page based on keywords in the content
+- Found 11 pages containing the search term "MCP", including our newly created page
+- Search results included highlights showing the matched terms
+- Fixed by updating the search implementation to use the correct Search API endpoint and properly process results
+
+#### 3. update_wiki_page with new content to add new section about installing MCP
+✅ **Success**
+- Command: `node .\build\cli\index.js wiki update -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test Wiki MCP" -c "# Model Context Protocol (MCP)\n\nThe Model Context Protocol (MCP) is a standardized protocol for communication between AI models and external tools or data sources. It enables AI models to access real-time information, perform actions in the real world, and utilize specialized capabilities beyond their training data.\n\n## Key Features\n\n- **Tool Use**: Allows models to use external tools to perform actions\n- **Resource Access**: Enables models to access external data sources\n- **Standardized Communication**: Provides a consistent interface for model-tool interaction\n- **Enhanced Capabilities**: Extends what AI models can do beyond their training data\n\n## Installing MCP\n\nTo install MCP, follow these steps:\n\n1. Clone the repository: `git clone https://github.com/modelcontextprotocol/mcp.git`\n2. Install dependencies: `npm install`\n3. Build the project: `npm run build`\n4. Start the server: `npm start`\n\nFor more information, visit the [MCP documentation](https://modelcontextprotocol.org/docs)." --project Cybersmart-Next`
+- Result: Successfully updated the wiki page with new content adding a section about installing MCP
+- The update was confirmed with ETag: "f44f0602d259b6277cbb9b6a536adc80ac2b2588"
+- Fixed by implementing proper ETag handling and using the PUT method with the correct headers
+
+#### Verification of Complete Workflow
+✅ **Success**
+- Created a wiki page about MCP
+- Searched for the page using keywords and found it
+- Updated the page with additional content about installing MCP
+- Searched again for "Installing MCP" and found the updated content
+- Command: `node .\build\cli\index.js wiki search -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -s "Installing MCP" --project Cybersmart-Next`
+- Result: Found 3 pages containing the search terms, including our newly created and updated page
