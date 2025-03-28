@@ -80,9 +80,10 @@ We made similar changes to fix this issue:
    - The CLI command
    - The tool definition schema
 
-2. Completely rewrote the implementation to use the Azure DevOps Node API directly, similar to how it's done in the test file.
-   - Instead of using the custom `WikiApi` class which was missing the required methods
-   - Now using the Azure DevOps Node API's `getPageText` method to retrieve page content
+2. Completely rewrote the implementation to use the REST API directly with fetch:
+   - Instead of using the Azure DevOps Node API which was causing circular structure errors
+   - Now using the fetch API to directly call the Azure DevOps REST API endpoints
+   - Added support for retrieving the actual wiki page content with the `--include-content` option
 
 This allows users to specify a project name when calling the CLI command, which will override the default project from the configuration.
 
@@ -94,8 +95,11 @@ node .\build\cli\index.js wiki page -w <wikiIdentifier> -p <path>
 # Specifying a project explicitly
 node .\build\cli\index.js wiki page -w <wikiIdentifier> -p <path> --project <projectName>
 
-# Example with actual values
-node .\build\cli\index.js wiki page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Howto Guide/Using components in Cybersmart Library" --project cybersmart-next
+# Including the actual content of the wiki page
+node .\build\cli\index.js wiki page -w <wikiIdentifier> -p <path> --include-content
+
+# Example with actual values (with project and content)
+node .\build\cli\index.js wiki page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Howto Guide/Using components in Cybersmart Library" --project cybersmart-next --include-content
 ```
 
 ### Technical Details
@@ -112,8 +116,9 @@ node .\build\cli\index.js wiki page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "
 4. Updated the tool definition in `src/tools/wiki/index.ts` to include the new parameter
 
 ### Testing
-The solution has been tested with both approaches:
+The solution has been tested with multiple approaches:
 1. Using the project parameter: `node .\build\cli\index.js wiki page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Howto Guide/Using components in Cybersmart Library" --project cybersmart-next`
 2. Using the environment variable: `$env:AZURE_DEVOPS_PROJECT = "cybersmart-next"; node .\build\cli\index.js wiki page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Howto Guide/Using components in Cybersmart Library"`
+3. Including content: `node .\build\cli\index.js wiki page -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Howto Guide/Using components in Cybersmart Library" --project cybersmart-next --include-content`
 
-Both approaches successfully retrieve the wiki page content.
+All approaches successfully retrieve the wiki page information, and the `--include-content` option successfully retrieves the actual content of the wiki page.

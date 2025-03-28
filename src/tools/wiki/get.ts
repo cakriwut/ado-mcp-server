@@ -2,6 +2,7 @@ import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import * as azdev from 'azure-devops-node-api';
 import { AzureDevOpsConnection } from '../../api/connection.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
+import fetch from 'node-fetch';
 
 interface GetWikiPageArgs {
   wikiIdentifier: string;
@@ -101,67 +102,79 @@ export async function getWikiPage(args: GetWikiPageArgs, config: AzureDevOpsConf
 
   try {
     // Initialize the connection
-    const authHandler = azdev.getPersonalAccessTokenHandler(config.pat);
-    const connection = new azdev.WebApi(`https://dev.azure.com/${config.org}`, authHandler);
-    
-    // Get the Wiki API directly from the Azure DevOps Node API
-    const wikiApi = await connection.getWikiApi();
+    AzureDevOpsConnection.initialize(config);
+    const connection = AzureDevOpsConnection.getInstance();
     
     // Use the project name from args if provided, otherwise use the one from config
     const projectName = args.projectName || config.project;
     
-    // First get all wikis to verify the wiki exists
-    const wikis = await wikiApi.getAllWikis(projectName);
-    const wiki = wikis.find(w => w.id === args.wikiIdentifier);
+    // Use fetch API directly to avoid circular structure issues
+    const baseUrl = `https://dev.azure.com/${config.org}/${projectName}/_apis/wiki/wikis/${args.wikiIdentifier}`;
+    const token = Buffer.from(`:${config.pat}`).toString('base64');
+    const authHeader = `Basic ${token}`;
     
-    if (!wiki || !wiki.id) {
+    // First verify the wiki exists
+    const wikiResponse = await fetch(`${baseUrl}?api-version=7.0`, {
+      headers: {
+        Authorization: authHeader,
+      },
+    });
+    
+    if (!wikiResponse.ok) {
       throw new McpError(
         ErrorCode.InvalidParams,
         `Wiki ${args.wikiIdentifier} not found`
       );
     }
-
-    // Try to get the wiki page
-    try {
-      const wikiPage = await wikiApi.getPageText(
-        projectName,
-        args.wikiIdentifier,
-        args.path
-      );
-
-      return {
-        content: [
+    
+    const wiki = await wikiResponse.json();
+    
+    // Create response object
+    const responseObj: any = {
+      id: wiki.id,
+      name: wiki.name,
+      path: args.path,
+      projectName: projectName,
+      version: args.version || "latest"
+    };
+    
+    // Try to get the wiki page content if requested
+    if (args.includeContent) {
+      try {
+        const encodedPath = encodeURIComponent(args.path);
+        const pageResponse = await fetch(
+          `${baseUrl}/pages?path=${encodedPath}&includeContent=true&api-version=7.0`,
           {
-            type: 'text',
-            text: JSON.stringify({
-              id: wiki.id,
-              name: wiki.name,
-              path: args.path,
-              projectName: projectName,
-              content: wikiPage ? "Content retrieved successfully" : "No content available",
-              version: args.version || "latest"
-            }, null, 2),
-          },
-        ],
-      };
-    } catch (pageError) {
-      // If we can't get the page content, just return the wiki information
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              id: wiki.id,
-              name: wiki.name,
-              path: args.path,
-              projectName: projectName,
-              message: 'Wiki page content retrieval failed, but wiki exists',
-              error: pageError instanceof Error ? pageError.message : String(pageError)
-            }, null, 2),
-          },
-        ],
-      };
+            headers: {
+              Authorization: authHeader,
+            },
+          }
+        );
+        
+        if (pageResponse.ok) {
+          const pageData = await pageResponse.json();
+          responseObj.content = pageData.content || "No content available";
+        } else {
+          responseObj.contentStatus = `Failed to retrieve content: ${pageResponse.statusText}`;
+        }
+      } catch (pageError) {
+        // If we can't get the page content, add an error message
+        responseObj.contentStatus = "Failed to retrieve content";
+        responseObj.contentError = pageError instanceof Error ? pageError.message : String(pageError);
+      }
+    } else {
+      // If content is not requested, just indicate that it's available
+      responseObj.contentStatus = "Content available but not requested";
     }
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(responseObj, null, 2),
+        },
+      ],
+    };
   } catch (error: unknown) {
     if (error instanceof McpError) throw error;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

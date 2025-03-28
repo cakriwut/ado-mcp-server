@@ -91,6 +91,9 @@ node .\build\cli\index.js wiki page -w <wikiIdentifier> -p <path> --project <pro
 # Get a wiki page by path (using default project from environment)
 node .\build\cli\index.js wiki page -w <wikiIdentifier> -p <path>
 
+# Get a wiki page with content
+node .\build\cli\index.js wiki page -w <wikiIdentifier> -p <path> --include-content
+
 # Create a new wiki
 node .\build\cli\index.js wiki create -n <name>
 
