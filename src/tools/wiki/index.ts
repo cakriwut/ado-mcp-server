@@ -23,6 +23,10 @@ const definitions = [
           type: 'string',
           description: 'Wiki identifier',
         },
+        projectName: {
+          type: 'string',
+          description: 'Project name (optional, defaults to the one in config)',
+        },
         pageViewsForDays: {
           type: 'number',
           description: 'Last N days from the current day for which page views is to be returned (optional, defaults to 30)',
@@ -118,7 +122,7 @@ const definitions = [
 export const wikiTools = {
   initialize: (config: AzureDevOpsConfig) => ({
     getWikis: (args: Record<string, never>) => getWikis(args, config),
-    listWikiPages: (args: { wikiIdentifier: string; pageViewsForDays?: number; top?: number; continuationToken?: string }) =>
+    listWikiPages: (args: { wikiIdentifier: string; projectName?: string; pageViewsForDays?: number; top?: number; continuationToken?: string }) =>
       listWikiPages(args, config),
     getWikiPage: (args: { wikiIdentifier: string; path: string; version?: string; includeContent?: boolean }) =>
       getWikiPage(args, config),

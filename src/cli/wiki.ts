@@ -33,6 +33,7 @@ export function wikiCommands(program: Command): void {
     .command('pages')
     .description('List pages in a wiki')
     .requiredOption('-w, --wiki <wikiIdentifier>', 'Wiki identifier')
+    .option('-p, --project <projectName>', 'Project name (defaults to the one in config)')
     .option('-d, --days <days>', 'Page views for days', '30')
     .option('-t, --top <count>', 'Number of pages to return', '100')
     .option('-c, --continuation <token>', 'Continuation token')
@@ -42,6 +43,7 @@ export function wikiCommands(program: Command): void {
         const tools = wikiTools.initialize(config);
         const result = await tools.listWikiPages({
           wikiIdentifier: options.wiki,
+          projectName: options.project,
           pageViewsForDays: parseInt(options.days, 10),
           top: parseInt(options.top, 10),
           continuationToken: options.continuation

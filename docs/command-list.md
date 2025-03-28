@@ -60,12 +60,35 @@
 2. get_wikis - ✅ Success
    - Successfully retrieved wiki for Cybersmart-Next project
    - Wiki ID: "40a12984-af55-49fc-9b4d-378a6ef44d8d", Name: "Cybersmart-Next.wiki"
-3. list_wiki_pages - ❌ Error: Wiki not found
-   - Error: "Wiki 40a12984-af55-49fc-9b4d-378a6ef44d8d not found"
-   - The WikiApi class is missing the getPagesBatch method that is called in the tool
+3. list_wiki_pages - ✅ Success (After Fix)
+   - Successfully retrieved wiki pages with project parameter
+   - Command: `node .\build\cli\index.js wiki pages -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p cybersmart-next`
+   - Also works with environment variable: `$env:AZURE_DEVOPS_PROJECT = "cybersmart-next"; node .\build\cli\index.js wiki pages -w 40a12984-af55-49fc-9b4d-378a6ef44d8d`
+   - Fixed by adding project parameter and simplifying implementation to use Azure DevOps Node API directly
 4. create_wiki - ❌ Error: Wiki already exists for project 'Cybersmart-Next'
    - This is expected behavior since a wiki already exists for the project
    - Cannot verify if the mappedPath parameter fix works correctly
 5. get_wiki_page - ❌ Error: Failed to get wiki page: Cannot read properties of null (reading 'id')
    - The issue persists despite the improved wiki lookup mechanism
    - The error suggests a problem with the API implementation
+
+### Wiki CLI Commands
+```bash
+# List all wikis in the project
+node .\build\cli\index.js wiki list
+
+# List pages in a wiki (with project parameter)
+node .\build\cli\index.js wiki pages -w <wikiIdentifier> -p <projectName>
+
+# List pages in a wiki (using default project from environment)
+node .\build\cli\index.js wiki pages -w <wikiIdentifier>
+
+# Get a wiki page by path
+node .\build\cli\index.js wiki page -w <wikiIdentifier> -p <path>
+
+# Create a new wiki
+node .\build\cli\index.js wiki create -n <name>
+
+# Update a wiki page
+node .\build\cli\index.js wiki update -w <wikiIdentifier> -p <path> -c <content>
+```

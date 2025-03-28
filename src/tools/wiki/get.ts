@@ -11,6 +11,7 @@ interface GetWikiPageArgs {
 
 interface ListWikiPagesArgs {
   wikiIdentifier: string;
+  projectName?: string;
   pageViewsForDays?: number;
   top?: number;
   continuationToken?: string;
@@ -41,20 +42,14 @@ export async function listWikiPages(args: ListWikiPagesArgs, config: AzureDevOps
     );
   }
 
-  AzureDevOpsConnection.initialize(config);
-  const connection = AzureDevOpsConnection.getInstance();
-  const wikiApi = await connection.getWikiApi();
-
   try {
-    // Get wiki information to verify it exists
-    const wiki = await wikiApi.getWiki(config.project, args.wikiIdentifier);
-    if (!wiki || !wiki.id) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Wiki ${args.wikiIdentifier} not found`
-      );
-    }
-
+    // Initialize the connection
+    AzureDevOpsConnection.initialize(config);
+    const connection = AzureDevOpsConnection.getInstance();
+    
+    // Get the Wiki API directly from the Azure DevOps Node API
+    const wikiApi = await connection.getWikiApi();
+    
     // Create request parameters for getting wiki pages
     const pagesBatchRequest = {
       pageViewsForDays: args.pageViewsForDays || 30,
@@ -62,8 +57,11 @@ export async function listWikiPages(args: ListWikiPagesArgs, config: AzureDevOps
       continuationToken: args.continuationToken
     };
 
-    // Get wiki pages
-    const wikiPages = await wikiApi.getPagesBatch(pagesBatchRequest, config.project, args.wikiIdentifier);
+    // Use the project name from args if provided, otherwise use the one from config
+    const projectName = args.projectName || config.project;
+    
+    // Get wiki pages using the Azure DevOps Node API directly
+    const wikiPages = await wikiApi.getPagesBatch(pagesBatchRequest, projectName, args.wikiIdentifier);
 
     return {
       content: [

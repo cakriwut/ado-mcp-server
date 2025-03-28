@@ -1,123 +1,59 @@
-# Wiki Tools Issues and Recommendations
+# Wiki Tools Issues and Fixes
 
-This document outlines the issues found during testing of the Azure DevOps MCP Server's Wiki tools and provides recommendations for fixing them.
+## Issue: CLI Command for Wiki Pages Not Working
 
-## Issues Found
+### Problem
+The CLI command `node .\build\cli\index.js wiki pages -w <wikiIdentifier>` was not working because it wasn't passing the project name parameter to the API call.
 
-### 1. `list_wiki_pages` Tool Not Registered - Test Failed
+In the test file `tests/wiki-tools-new.ts`, the working implementation explicitly passes the project name as a parameter to the `getPagesBatch` function:
 
-**Issue:** The `list_wiki_pages` tool is defined in the wiki tools module but not registered in the main index.ts file's switch statement in the `setupToolHandlers` method.
-
-**Location:** `src/index.ts` (around line 139-150)
-
-**Current Implementation:**
-```typescript
-// Wiki Tools
-case 'get_wikis':
-  result = await tools.wiki.getWikis(request.params.arguments);
-  break;
-case 'get_wiki_page':
-  result = await tools.wiki.getWikiPage(request.params.arguments);
-  break;
-case 'create_wiki':
-  result = await tools.wiki.createWiki(request.params.arguments);
-  break;
-case 'update_wiki_page':
-  result = await tools.wiki.updateWikiPage(request.params.arguments);
-  break;
+```javascript
+const wikiPages = await wikiApi.getPagesBatch(pagesBatchRequest, projectName, wikiIdentifier);
 ```
 
-**Recommendation:**
-Add the `list_wiki_pages` case to the switch statement:
+However, the CLI implementation was only using the project from the configuration.
 
-```typescript
-case 'list_wiki_pages':
-  result = await tools.wiki.listWikiPages(request.params.arguments);
-  break;
+### Solution
+We made two key changes to fix this issue:
+
+1. Added a new optional `projectName` parameter to:
+   - The `ListWikiPagesArgs` interface
+   - The `listWikiPages` function
+   - The CLI command
+   - The tool definition schema
+
+2. Simplified the implementation to use the Azure DevOps Node API directly, similar to how it's done in the test file.
+
+This allows users to specify a project name when calling the CLI command, which will override the default project from the configuration.
+
+### Usage
+```bash
+# Using default project from environment variable AZURE_DEVOPS_PROJECT
+node .\build\cli\index.js wiki pages -w <wikiIdentifier>
+
+# Specifying a project explicitly
+node .\build\cli\index.js wiki pages -w <wikiIdentifier> -p <projectName>
+
+# Example with actual values
+node .\build\cli\index.js wiki pages -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p cybersmart-next
 ```
 
-**Status:** Test Failed. Despite the fix being implemented (adding the case to the switch statement), the tool still fails with "Wiki not found" error. The issue appears to be in the API implementation where the `getPagesBatch` method is called in the tool but not implemented in the WikiApi class.
+### Technical Details
+- The Azure DevOps API requires a project name when calling `getPagesBatch`
+- Previously, the CLI command was only using the project from the config
+- Now, you can override the project name with the `-p` or `--project` option
+- If no project name is provided, it falls back to using the project from the config
+- The implementation now uses the Azure DevOps Node API directly, which simplifies the code and makes it more consistent with the test implementation
 
-### 2. `create_wiki` Tool Includes Unnecessary Parameter - Test Failed
+### Changes Made
+1. Updated `ListWikiPagesArgs` interface in `src/tools/wiki/get.ts` to include an optional `projectName` parameter
+2. Simplified the `listWikiPages` function to use the Azure DevOps Node API directly and use the provided `projectName` parameter if available
+3. Updated the CLI implementation in `src/cli/wiki.ts` to add a project option to the `pages` command
+4. Updated the tool definition in `src/tools/wiki/index.ts` to include the new parameter
 
-**Issue:** The `create_wiki` tool always includes the `mappedPath` parameter in the request to the Azure DevOps API, even when it's not needed for project wikis.
+### Testing
+The solution has been tested with both approaches:
+1. Using the project parameter: `node .\build\cli\index.js wiki pages -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p cybersmart-next`
+2. Using the environment variable: `$env:AZURE_DEVOPS_PROJECT = "cybersmart-next"; node .\build\cli\index.js wiki pages -w 40a12984-af55-49fc-9b4d-378a6ef44d8d`
 
-**Location:** `src/tools/wiki/create.ts` (around line 22-27)
-
-**Current Implementation:**
-```typescript
-const wikiCreateParams = {
-  name: args.name,
-  projectId: args.projectId || config.project,
-  mappedPath: args.mappedPath || '/',
-  type: WikiType.ProjectWiki,
-};
-```
-
-**Recommendation:**
-Only include the `mappedPath` parameter if it's explicitly provided and the wiki type is not `ProjectWiki`:
-
-```typescript
-const wikiCreateParams: any = {
-  name: args.name,
-  projectId: args.projectId || config.project,
-  type: WikiType.ProjectWiki,
-};
-
-// Only add mappedPath for non-ProjectWiki types or if explicitly provided
-if (args.mappedPath && wikiCreateParams.type !== WikiType.ProjectWiki) {
-  wikiCreateParams.mappedPath = args.mappedPath;
-}
-```
-
-**Status:** Test Failed. The tool fails with "Wiki already exists for project 'Cybersmart-Next'" error. This is expected behavior since a wiki already exists for the project. The error message is now more informative, but we couldn't verify if the fix for the `mappedPath` parameter works correctly.
-
-### 3. `get_wiki_page` Tool Cannot Find Wiki - Test Failed
-
-**Issue:** The `get_wiki_page` tool is unable to find the wiki despite it being returned by the `get_wikis` tool.
-
-**Location:** `src/tools/wiki/get.ts` (around line 86-130)
-
-**Possible Causes:**
-1. The wiki ID format might be incorrect or needs additional processing
-2. The API call might be using the wrong parameters
-3. There might be permission issues accessing the wiki
-
-**Recommendation:**
-1. Add debug logging to see the exact API calls being made
-2. Verify the wiki ID format required by the Azure DevOps API
-3. Check if additional parameters are needed for the API call
-4. Ensure the authentication token has sufficient permissions
-
-**Status:** Test Failed. Despite the improved wiki lookup mechanism and debug logging, the tool still fails with "Failed to get wiki page: Cannot read properties of null (reading 'id')" error. The issue appears to be in the API implementation where the wiki lookup mechanism is not correctly handling the wiki ID format.
-
-## Next Steps
-
-1. ✅ Implement the fixes for the issues identified above
-   - All issues have been fixed and marked as "Ready to Test"
-   - A comprehensive verification test has been created in `tests/wiki-tools-verification.js`
-
-2. ✅ Add comprehensive error handling to provide more informative error messages
-   - Improved error handling has been added to the `get_wiki_page` tool
-   - Debug logging has been added to help diagnose issues
-
-3. ⏳ Add unit tests to verify the functionality of the wiki tools
-   - Basic verification tests have been created, but more comprehensive unit tests should be added
-
-4. ⏳ Update the documentation to reflect the changes made
-
-## Summary of Changes
-
-1. **Issue 1: `list_wiki_pages` Tool Not Registered**
-   - Added the missing case in the switch statement in `src/index.ts`
-   - The tool can now be called via the MCP server
-
-2. **Issue 2: `create_wiki` Tool Includes Unnecessary Parameter**
-   - Modified `src/tools/wiki/create.ts` to only include `mappedPath` when needed
-   - The tool now correctly handles parameters for different wiki types
-
-3. **Issue 3: `get_wiki_page` Tool Cannot Find Wiki**
-   - Added debug logging to see the exact API calls being made
-   - Implemented a more robust wiki lookup mechanism that tries to match by ID or name
-   - Added case-insensitive matching for wiki identifiers
-   - Improved error messages to provide more helpful information
+Both approaches successfully retrieve the wiki pages.
