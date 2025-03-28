@@ -1,8 +1,9 @@
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { AzureDevOpsConnection } from '../../api/connection.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
+import { WikiApi } from '../../api/wiki.js';
 
-interface UpdateWikiPageArgs {
+interface CreateWikiPageArgs {
   wikiIdentifier: string;
   path: string;
   content: string;
@@ -10,7 +11,7 @@ interface UpdateWikiPageArgs {
   projectName?: string;
 }
 
-export async function updateWikiPage(args: UpdateWikiPageArgs, config: AzureDevOpsConfig) {
+export async function createWikiPage(args: CreateWikiPageArgs, config: AzureDevOpsConfig) {
   if (!args.wikiIdentifier || !args.path || !args.content) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -19,38 +20,29 @@ export async function updateWikiPage(args: UpdateWikiPageArgs, config: AzureDevO
   }
 
   AzureDevOpsConnection.initialize(config);
-  const connection = AzureDevOpsConnection.getInstance();
-  const wikiApi = await connection.getWikiApi();
+  const wikiApi = AzureDevOpsConnection.getWikiApi();
 
   try {
     // Use the project name from args if provided, otherwise use the one from config
     const projectName = args.projectName || config.project;
     
-    const wiki = await wikiApi.getWiki(projectName, args.wikiIdentifier);
-    if (!wiki || !wiki.id) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Wiki ${args.wikiIdentifier} not found`
-      );
-    }
-
-    const updateParams = {
-      content: args.content,
-      comment: args.comment || `Updated page ${args.path}`,
-    };
-
-    // Da die Wiki-API keine direkte Methode zum Aktualisieren von Seiten bietet,
-    // geben wir vorerst nur die Wiki-Informationen zurück
+    // We'll directly try to create/update the page
+    // If the wiki doesn't exist, the updateWikiPage method will throw an appropriate error
+    
+    // Use the updateWikiPage method to create a new page
+    // In Azure DevOps, the PUT operation will create the page if it doesn't exist
+    const createdPage = await wikiApi.updateWikiPage(
+      args.wikiIdentifier,
+      args.path,
+      args.content,
+      args.comment || `Created page ${args.path}`
+    );
+    
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            wiki,
-            path: args.path,
-            message: 'Wiki page update is not supported in the current API version',
-            requestedUpdate: updateParams
-          }, null, 2),
+          text: JSON.stringify(createdPage, null, 2),
         },
       ],
     };
@@ -68,7 +60,7 @@ export async function updateWikiPage(args: UpdateWikiPageArgs, config: AzureDevO
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to update wiki page: ${errorMessage}`
+      `Failed to create wiki page: ${errorMessage}`
     );
   }
 }

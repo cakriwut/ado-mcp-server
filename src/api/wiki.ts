@@ -73,6 +73,36 @@ export class WikiApi {
     return response.json();
   }
 
+  async getWiki(projectName: string, wikiIdentifier: string): Promise<Wiki> {
+    const authHeader = await this.getAuthHeader();
+    console.log(`Getting wiki with ID ${wikiIdentifier} in project ${projectName}`);
+    console.log(`URL: ${this.config.orgUrl}/${projectName}/_apis/wiki/wikis/${wikiIdentifier}?api-version=7.0`);
+    
+    const response = await fetch(`${this.config.orgUrl}/${projectName}/_apis/wiki/wikis/${wikiIdentifier}?api-version=7.0`, {
+      headers: {
+        Authorization: authHeader,
+      },
+    });
+    
+    console.log(`Response status: ${response.status} ${response.statusText}`);
+
+    if (response.status === 404) {
+      throw new WikiNotFoundError(wikiIdentifier);
+    }
+
+    if (!response.ok) {
+      throw new WikiError(
+        `Failed to get wiki: ${response.statusText}`,
+        response.status,
+        wikiIdentifier,
+        undefined,
+        await response.text()
+      );
+    }
+
+    return response.json();
+  }
+
   async getAllWikis(): Promise<WikiListResponse> {
     const authHeader = await this.getAuthHeader();
     const response = await fetch(`${this.baseUrl}?api-version=7.0`, {
@@ -119,6 +149,46 @@ export class WikiApi {
         response.status,
         wikiIdentifier,
         path,
+        await response.text()
+      );
+    }
+
+    return response.json();
+  }
+
+  async searchWikiPages(wikiIdentifier: string, searchText: string, projectName: string, top: number = 20): Promise<any> {
+    const authHeader = await this.getAuthHeader();
+    const encodedSearchText = encodeURIComponent(searchText);
+    
+    // Use the search endpoint
+    const response = await fetch(
+      `${this.config.orgUrl}/${projectName}/_apis/wiki/wikis/${wikiIdentifier}/searchResults?searchText=${encodedSearchText}&top=${top}&api-version=7.0`,
+      {
+        headers: {
+          Authorization: authHeader,
+        },
+      }
+    );
+
+    if (response.status === 404) {
+      if (response.statusText.includes('Wiki not found')) {
+        throw new WikiNotFoundError(wikiIdentifier);
+      }
+      throw new WikiError(
+        `Failed to search wiki pages: ${response.statusText}`,
+        response.status,
+        wikiIdentifier,
+        undefined,
+        await response.text()
+      );
+    }
+
+    if (!response.ok) {
+      throw new WikiError(
+        `Failed to search wiki pages: ${response.statusText}`,
+        response.status,
+        wikiIdentifier,
+        undefined,
         await response.text()
       );
     }

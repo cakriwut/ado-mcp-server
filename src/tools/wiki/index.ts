@@ -1,7 +1,8 @@
-import { getWikis, listWikiPages } from './get.js';
+import { getWikis, listWikiPages, searchWikiPage } from './get.js';
 import { getWikiPage } from './get.js';
 import { createWiki } from './create.js';
 import { updateWikiPage } from './update.js';
+import { createWikiPage } from './create-page.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
 
 const definitions = [
@@ -41,6 +42,36 @@ const definitions = [
         },
       },
       required: ['wikiIdentifier'],
+    },
+  },
+  {
+    name: 'search_wiki_page',
+    description: 'Search for pages in a wiki by text',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        wikiIdentifier: {
+          type: 'string',
+          description: 'Wiki identifier',
+        },
+        searchText: {
+          type: 'string',
+          description: 'Text to search for in wiki pages',
+        },
+        projectName: {
+          type: 'string',
+          description: 'Project name (optional, defaults to the one in config)',
+        },
+        top: {
+          type: 'number',
+          description: 'Maximum number of results to return (optional, defaults to 20)',
+        },
+        includeContent: {
+          type: 'boolean',
+          description: 'Include page content in results (optional, defaults to false)',
+        },
+      },
+      required: ['wikiIdentifier', 'searchText'],
     },
   },
   {
@@ -117,6 +148,40 @@ const definitions = [
           type: 'string',
           description: 'Comment for the update (optional)',
         },
+        projectName: {
+          type: 'string',
+          description: 'Project name (optional, defaults to the one in config)',
+        },
+      },
+      required: ['wikiIdentifier', 'path', 'content'],
+    },
+  },
+  {
+    name: 'create_wiki_page',
+    description: 'Create a new wiki page',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        wikiIdentifier: {
+          type: 'string',
+          description: 'Wiki identifier',
+        },
+        path: {
+          type: 'string',
+          description: 'Page path',
+        },
+        content: {
+          type: 'string',
+          description: 'Page content in markdown format',
+        },
+        comment: {
+          type: 'string',
+          description: 'Comment for the creation (optional)',
+        },
+        projectName: {
+          type: 'string',
+          description: 'Project name (optional, defaults to the one in config)',
+        },
       },
       required: ['wikiIdentifier', 'path', 'content'],
     },
@@ -128,12 +193,16 @@ export const wikiTools = {
     getWikis: (args: Record<string, never>) => getWikis(args, config),
     listWikiPages: (args: { wikiIdentifier: string; projectName?: string; pageViewsForDays?: number; top?: number; continuationToken?: string }) =>
       listWikiPages(args, config),
+    searchWikiPage: (args: { wikiIdentifier: string; searchText: string; projectName?: string; top?: number; includeContent?: boolean }) =>
+      searchWikiPage(args, config),
     getWikiPage: (args: { wikiIdentifier: string; path: string; projectName?: string; version?: string; includeContent?: boolean }) =>
       getWikiPage(args, config),
     createWiki: (args: { name: string; projectId?: string; mappedPath?: string }) =>
       createWiki(args, config),
-    updateWikiPage: (args: { wikiIdentifier: string; path: string; content: string; comment?: string }) =>
+    updateWikiPage: (args: { wikiIdentifier: string; path: string; content: string; comment?: string; projectName?: string }) =>
       updateWikiPage(args, config),
+    createWikiPage: (args: { wikiIdentifier: string; path: string; content: string; comment?: string; projectName?: string }) =>
+      createWikiPage(args, config),
     definitions,
   }),
   definitions,

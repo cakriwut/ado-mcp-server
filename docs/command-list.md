@@ -16,6 +16,7 @@
 - [X] create_wiki (Tested, no need to retest. Please skip.)
 - [ ] update_wiki_page (Error: Wiki not found)
 - [ ] create_wiki_page (New tool to create a wiki page)
+- [ ] search_wiki_page (Search wiki using in Azure Devops by 'search text')
 
 ## Project Tools
 - [X] list_projects
@@ -122,25 +123,38 @@ node .\build\cli\index.js wiki create-page -w <wikiIdentifier> -p <path> -c <con
    - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", path: "/Getting Started", projectName: "Cybersmart-Next", includeContent: true
    - Returns the wiki page details including content
 
-4. update_wiki_page - ❌ Error: Wiki not found
-   - Failed to update wiki page with error: "Wiki 40a12984-af55-49fc-9b4d-378a6ef44d8d not found"
-   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "update_wiki_page"
-   - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", path: "/Test MCP Page", content: "...", comment: "Test page update via MCP tool", projectName: "Cybersmart-Next"
-   - Issue: The update_wiki_page tool doesn't have a projectName parameter in its interface or implementation, unlike the list_wiki_pages and get_wiki_page tools
+4. update_wiki_page - ❌ Error: Unauthorized
+   - Failed to update wiki page with error: "Failed to update wiki page: Unauthorized"
+   - Command: `node .\build\cli\index.js wiki update -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test MCP Page" -c "# Test MCP Page..." --project Cybersmart-Next`
+   - Issue: The update_wiki_page tool now has the projectName parameter, but there seems to be an authorization issue with the Azure DevOps API
 
-### Recommendations for update_wiki_page Tool
-1. Update the UpdateWikiPageArgs interface in src/tools/wiki/update.ts to include an optional projectName parameter:
+5. create_wiki_page - ❌ Error: Unknown tool
+   - Failed to create wiki page with error: "Unknown tool: create_wiki_page"
+   - Command: `use_mcp_tool` with server_name: "azure-devops-mcp-server", tool_name: "create_wiki_page"
+   - Issue: The create_wiki_page tool has been implemented but requires restarting the MCP server to register the new tool
+
+5. create_wiki_page - ⚠️ Not Implemented
+   - This is a new tool that needs to be implemented
+   - Should allow users to create a new wiki page in a specific wiki of a project
+   - Recommended implementation provided in the recommendations section below
+
+### Implemented Changes for Wiki Tools
+
+#### 1. Update Wiki Page Tool
+We've implemented the following changes to the update_wiki_page tool:
+
+1. Added projectName parameter to the UpdateWikiPageArgs interface:
    ```typescript
    interface UpdateWikiPageArgs {
      wikiIdentifier: string;
      path: string;
      content: string;
      comment?: string;
-     projectName?: string;  // Add this line
+     projectName?: string;  // Added this line
    }
    ```
 
-2. Update the updateWikiPage function to use the provided projectName parameter if available:
+2. Updated the updateWikiPage function to use the provided projectName parameter:
    ```typescript
    export async function updateWikiPage(args: UpdateWikiPageArgs, config: AzureDevOpsConfig) {
      // ...
@@ -150,7 +164,7 @@ node .\build\cli\index.js wiki create-page -w <wikiIdentifier> -p <path> -c <con
    }
    ```
 
-3. Update the tool definition in src/tools/wiki/index.ts to include the new parameter:
+3. Updated the tool definition in src/tools/wiki/index.ts to include the new parameter:
    ```typescript
    {
      name: 'update_wiki_page',
@@ -169,8 +183,249 @@ node .\build\cli\index.js wiki create-page -w <wikiIdentifier> -p <path> -c <con
    }
    ```
 
-4. Update the tool initialization in src/tools/wiki/index.ts:
+4. Updated the CLI implementation in src/cli/wiki.ts to add a project option to the update command:
    ```typescript
-   updateWikiPage: (args: { wikiIdentifier: string; path: string; content: string; comment?: string; projectName?: string }) =>
-     updateWikiPage(args, config),
+   .option('--project <projectName>', 'Project name (defaults to the one in config)')
+   ```
+
+#### 2. Create Wiki Page Tool
+We've implemented a new create_wiki_page tool with the following components:
+
+1. Created src/tools/wiki/create-page.ts with the createWikiPage function:
+   ```typescript
+   export async function createWikiPage(args: CreateWikiPageArgs, config: AzureDevOpsConfig) {
+     // Implementation that uses the updateWikiPage method of the WikiApi class
+     // to create a new page (PUT operation creates the page if it doesn't exist)
+   }
+   ```
+
+2. Added the tool definition in src/tools/wiki/index.ts:
+   ```typescript
+   {
+     name: 'create_wiki_page',
+     description: 'Create a new wiki page',
+     inputSchema: {
+       type: 'object',
+       properties: {
+         wikiIdentifier: {
+           type: 'string',
+           description: 'Wiki identifier',
+         },
+         // ... other properties
+       },
+       required: ['wikiIdentifier', 'path', 'content'],
+     },
+   }
+   ```
+
+3. Added the CLI implementation in src/cli/wiki.ts:
+   ```typescript
+   wiki
+     .command('create-page')
+     .description('Create a new wiki page')
+     .requiredOption('-w, --wiki <wikiIdentifier>', 'Wiki identifier')
+     // ... other options
+   ```
+
+4. Added the tool handler in src/index.ts:
+   ```typescript
+   case 'create_wiki_page':
+     result = await tools.wiki.createWikiPage(request.params.arguments);
+     break;
+   ```
+
+#### 3. Added getWiki Method to WikiApi
+We've implemented the getWiki method in the WikiApi class to support the update_wiki_page and create_wiki_page tools:
+```typescript
+async getWiki(projectName: string, wikiIdentifier: string): Promise<Wiki> {
+  const authHeader = await this.getAuthHeader();
+  const response = await fetch(`${this.config.orgUrl}/${projectName}/_apis/wiki/wikis/${wikiIdentifier}?api-version=7.0`, {
+    headers: {
+      Authorization: authHeader,
+    },
+  });
+
+  // Error handling...
+
+  return response.json();
+}
+```
+
+### Recommendations for Future Work
+
+1. **Authorization Issues**: The update_wiki_page and create_wiki_page tools are currently failing with "Unauthorized" errors. This suggests that there might be issues with the Personal Access Token (PAT) or permissions. Future work should focus on:
+   - Ensuring the PAT has the correct permissions for wiki operations
+   - Implementing better error handling for authorization issues
+   - Adding detailed logging to help diagnose authentication problems
+
+2. **MCP Server Restart**: The create_wiki_page tool requires restarting the MCP server to register the new tool. Future work should consider:
+   - Implementing dynamic tool registration that doesn't require server restart
+   - Adding a reload mechanism to refresh tool definitions without restarting
+   - Documenting the restart requirement in the developer documentation
+
+3. **Testing with Real Data**: The tools should be tested with real data in a controlled environment to ensure they work correctly. This includes:
+   - Creating test wikis and pages
+   - Updating existing pages
+   - Verifying the content is correctly saved
+   - Testing error cases and edge conditions
+
+4. **Consistent Parameter Naming**: Ensure all tools follow consistent parameter naming conventions:
+   - Use projectName consistently across all tools
+   - Document the parameter requirements clearly
+   - Provide helpful error messages when required parameters are missing
+
+5. **Error Handling Improvements**: Enhance error handling to provide more helpful error messages:
+   - Include specific error codes from the Azure DevOps API
+   - Provide suggestions for resolving common errors
+   - Add detailed logging for debugging purposes
+
+### Recommendations for create_wiki_page Tool
+1. Create a new file src/tools/wiki/create-page.ts with the following content:
+   ```typescript
+   import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+   import { AzureDevOpsConnection } from '../../api/connection.js';
+   import { AzureDevOpsConfig } from '../../config/environment.js';
+   
+   interface CreateWikiPageArgs {
+     wikiIdentifier: string;
+     path: string;
+     content: string;
+     comment?: string;
+     projectName?: string;
+   }
+   
+   export async function createWikiPage(args: CreateWikiPageArgs, config: AzureDevOpsConfig) {
+     if (!args.wikiIdentifier || !args.path || !args.content) {
+       throw new McpError(
+         ErrorCode.InvalidParams,
+         'Wiki identifier, page path, and content are required'
+       );
+     }
+   
+     AzureDevOpsConnection.initialize(config);
+     const connection = AzureDevOpsConnection.getInstance();
+     const wikiApi = await connection.getWikiApi();
+   
+     try {
+       // Use the project name from args if provided, otherwise use the one from config
+       const projectName = args.projectName || config.project;
+       
+       // First verify the wiki exists
+       const wiki = await wikiApi.getWiki(projectName, args.wikiIdentifier);
+       if (!wiki || !wiki.id) {
+         throw new McpError(
+           ErrorCode.InvalidParams,
+           `Wiki ${args.wikiIdentifier} not found`
+         );
+       }
+       
+       // Create the wiki page
+       const pageCreateParams = {
+         content: args.content,
+         comment: args.comment || `Created page ${args.path}`
+       };
+       
+       // Use the Azure DevOps REST API to create the page
+       // Note: This is a placeholder implementation as the Azure DevOps Node API
+       // doesn't have a direct method for creating wiki pages
+       const createdPage = await wikiApi.createOrUpdatePage(
+         wiki.id,
+         args.path,
+         pageCreateParams,
+         projectName
+       );
+       
+       return {
+         content: [
+           {
+             type: 'text',
+             text: JSON.stringify(createdPage, null, 2),
+           },
+         ],
+       };
+     } catch (error: unknown) {
+       if (error instanceof McpError) throw error;
+       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+       throw new McpError(
+         ErrorCode.InternalError,
+         `Failed to create wiki page: ${errorMessage}`
+       );
+     }
+   }
+   ```
+
+2. Update the tool definition in src/tools/wiki/index.ts to include the new tool:
+   ```typescript
+   {
+     name: 'create_wiki_page',
+     description: 'Create a new wiki page',
+     inputSchema: {
+       type: 'object',
+       properties: {
+         wikiIdentifier: {
+           type: 'string',
+           description: 'Wiki identifier',
+         },
+         path: {
+           type: 'string',
+           description: 'Page path',
+         },
+         content: {
+           type: 'string',
+           description: 'Page content in markdown format',
+         },
+         comment: {
+           type: 'string',
+           description: 'Comment for the creation (optional)',
+         },
+         projectName: {
+           type: 'string',
+           description: 'Project name (optional, defaults to the one in config)',
+         },
+       },
+       required: ['wikiIdentifier', 'path', 'content'],
+     },
+   }
+   ```
+
+3. Update the tool initialization in src/tools/wiki/index.ts:
+   ```typescript
+   createWikiPage: (args: { wikiIdentifier: string; path: string; content: string; comment?: string; projectName?: string }) =>
+     createWikiPage(args, config),
+   ```
+
+4. Update the imports in src/tools/wiki/index.ts:
+   ```typescript
+   import { getWikis, listWikiPages } from './get.js';
+   import { getWikiPage } from './get.js';
+   import { createWiki } from './create.js';
+   import { updateWikiPage } from './update.js';
+   import { createWikiPage } from './create-page.js';
+   import { AzureDevOpsConfig } from '../../config/environment.js';
+   ```
+
+5. Add the new tool to the CLI implementation in src/cli/wiki.ts:
+   ```typescript
+   program
+     .command('create-page')
+     .description('Create a new wiki page')
+     .requiredOption('-w, --wiki <wikiIdentifier>', 'Wiki identifier')
+     .requiredOption('-p, --path <path>', 'Page path')
+     .requiredOption('-c, --content <content>', 'Page content in markdown format')
+     .option('--comment <comment>', 'Comment for the creation')
+     .option('--project <projectName>', 'Project name (optional, defaults to the one in config)')
+     .action(async (options) => {
+       try {
+         const result = await wikiTools.createWikiPage({
+           wikiIdentifier: options.wiki,
+           path: options.path,
+           content: options.content,
+           comment: options.comment,
+           projectName: options.project,
+         });
+         console.log(result.content[0].text);
+       } catch (error) {
+         console.error('Error creating wiki page:', error);
+       }
+     });
    ```

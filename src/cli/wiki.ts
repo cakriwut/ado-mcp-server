@@ -116,6 +116,7 @@ export function wikiCommands(program: Command): void {
     .requiredOption('-p, --path <path>', 'Page path')
     .requiredOption('-c, --content <content>', 'Page content')
     .option('--comment <comment>', 'Comment for the update')
+    .option('--project <projectName>', 'Project name (defaults to the one in config)')
     .action(async (options) => {
       try {
         const config = createConfig();
@@ -124,7 +125,64 @@ export function wikiCommands(program: Command): void {
           wikiIdentifier: options.wiki,
           path: options.path,
           content: options.content,
-          comment: options.comment
+          comment: options.comment,
+          projectName: options.project
+        });
+        // Ensure we're outputting valid JSON
+        console.log(result.content[0].text);
+      } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // Create wiki page
+  wiki
+    .command('create-page')
+    .description('Create a new wiki page')
+    .requiredOption('-w, --wiki <wikiIdentifier>', 'Wiki identifier')
+    .requiredOption('-p, --path <path>', 'Page path')
+    .requiredOption('-c, --content <content>', 'Page content in markdown format')
+    .option('--comment <comment>', 'Comment for the creation')
+    .option('--project <projectName>', 'Project name (defaults to the one in config)')
+    .action(async (options) => {
+      try {
+        const config = createConfig();
+        const tools = wikiTools.initialize(config);
+        const result = await tools.createWikiPage({
+          wikiIdentifier: options.wiki,
+          path: options.path,
+          content: options.content,
+          comment: options.comment,
+          projectName: options.project,
+        });
+        // Ensure we're outputting valid JSON
+        console.log(result.content[0].text);
+      } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // Search wiki pages
+  wiki
+    .command('search')
+    .description('Search for pages in a wiki by text')
+    .requiredOption('-w, --wiki <wikiIdentifier>', 'Wiki identifier')
+    .requiredOption('-s, --search <searchText>', 'Text to search for in wiki pages')
+    .option('-p, --project <projectName>', 'Project name (defaults to the one in config)')
+    .option('-t, --top <count>', 'Maximum number of results to return', '20')
+    .option('--include-content', 'Include page content in results')
+    .action(async (options) => {
+      try {
+        const config = createConfig();
+        const tools = wikiTools.initialize(config);
+        const result = await tools.searchWikiPage({
+          wikiIdentifier: options.wiki,
+          searchText: options.search,
+          projectName: options.project,
+          top: parseInt(options.top, 10),
+          includeContent: options.includeContent
         });
         // Ensure we're outputting valid JSON
         console.log(result.content[0].text);

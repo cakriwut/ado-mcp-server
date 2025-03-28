@@ -20,6 +20,14 @@ interface ListWikiPagesArgs {
   continuationToken?: string;
 }
 
+interface SearchWikiPageArgs {
+  wikiIdentifier: string;
+  searchText: string;
+  projectName?: string;
+  top?: number;
+  includeContent?: boolean;
+}
+
 export async function getWikis(args: Record<string, never>, config: AzureDevOpsConfig) {
   AzureDevOpsConnection.initialize(config);
   const connection = AzureDevOpsConnection.getInstance();
@@ -88,6 +96,133 @@ export async function listWikiPages(args: ListWikiPagesArgs, config: AzureDevOps
     throw new McpError(
       ErrorCode.InternalError,
       `Failed to get wiki pages: ${errorMessage}`
+    );
+  }
+}
+
+export async function searchWikiPage(args: SearchWikiPageArgs, config: AzureDevOpsConfig) {
+  if (!args.wikiIdentifier || !args.searchText) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      'Wiki identifier and search text are required'
+    );
+  }
+
+  try {
+    // Initialize the connection
+    AzureDevOpsConnection.initialize(config);
+    const connection = AzureDevOpsConnection.getInstance();
+    
+    // Use the project name from args if provided, otherwise use the one from config
+    const projectName = args.projectName || config.project;
+    
+    console.log(`Searching for "${args.searchText}" in wiki "${args.wikiIdentifier}" in project "${projectName}"`);
+    
+    // Get the wiki API
+    const wikiApi = await connection.getWikiApi();
+    
+    // First, get all wiki pages
+    const pagesBatchRequest = {
+      pageViewsForDays: 30,
+      top: 100, // Get a larger number of pages to search through
+      continuationToken: undefined
+    };
+    
+    console.log(`Getting wiki pages for wiki ${args.wikiIdentifier}...`);
+    const wikiPages = await wikiApi.getPagesBatch(pagesBatchRequest, projectName, args.wikiIdentifier);
+    console.log(`Retrieved ${wikiPages.length} wiki pages`);
+    
+    // Create a case-insensitive regex for the search text
+    const searchRegex = new RegExp(args.searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    
+    // Array to store matching pages
+    const matchingPages: any[] = [];
+    
+    // For each page, check if it matches the search text
+    for (const page of wikiPages) {
+      // Check if the path matches (handle undefined path)
+      const pagePath = page.path || '';
+      const pathMatches = searchRegex.test(pagePath);
+      
+      let contentMatches = false;
+      let content = null;
+      
+      // If includeContent is true or the path doesn't match, check the content
+      if (args.includeContent || !pathMatches) {
+        try {
+          // Get the page content
+          const token = Buffer.from(`:${config.pat}`).toString('base64');
+          const authHeader = `Basic ${token}`;
+          const baseUrl = `https://dev.azure.com/${config.org}/${projectName}/_apis/wiki/wikis/${args.wikiIdentifier}`;
+          const encodedPath = encodeURIComponent(pagePath);
+          
+          const pageResponse = await fetch(
+            `${baseUrl}/pages?path=${encodedPath}&includeContent=true&api-version=7.0`,
+            {
+              headers: {
+                Authorization: authHeader,
+              },
+            }
+          );
+          
+          if (pageResponse.ok) {
+            const pageData = await pageResponse.json();
+            content = pageData.content;
+            
+            // Check if content matches
+            if (content) {
+              contentMatches = searchRegex.test(content);
+            }
+          }
+        } catch (pageError) {
+          console.error(`Error getting content for page ${page.path}:`, pageError);
+        }
+      }
+      
+      // If either the path or content matches, add to results
+      if (pathMatches || contentMatches) {
+        const matchingPage: any = {
+          id: page.id,
+          path: pagePath,
+          wikiIdentifier: args.wikiIdentifier,
+          projectName: projectName,
+          matchType: pathMatches ? (contentMatches ? 'path_and_content' : 'path') : 'content',
+          fileName: pagePath.split('/').pop() || 'Unknown'
+        };
+        
+        // Include content if requested
+        if (args.includeContent && content) {
+          matchingPage.content = content;
+        }
+        
+        matchingPages.push(matchingPage);
+        
+        // If we've reached the requested number of results, stop
+        if (matchingPages.length >= (args.top || 20)) {
+          break;
+        }
+      }
+    }
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            count: matchingPages.length,
+            searchText: args.searchText,
+            results: matchingPages
+          }, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    if (error instanceof McpError) throw error;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error in searchWikiPage:', errorMessage);
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Failed to search wiki pages: ${errorMessage}`
     );
   }
 }

@@ -142,6 +142,9 @@ class AzureDevOpsServer {
           case 'list_wiki_pages':
             result = await tools.wiki.listWikiPages(request.params.arguments);
             break;
+          case 'search_wiki_page':
+            result = await tools.wiki.searchWikiPage(request.params.arguments);
+            break;
           case 'get_wiki_page':
             result = await tools.wiki.getWikiPage(request.params.arguments);
             break;
@@ -150,6 +153,9 @@ class AzureDevOpsServer {
             break;
           case 'update_wiki_page':
             result = await tools.wiki.updateWikiPage(request.params.arguments);
+            break;
+          case 'create_wiki_page':
+            result = await tools.wiki.createWikiPage(request.params.arguments);
             break;
           
           // Project Tools
