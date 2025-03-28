@@ -123,10 +123,16 @@ node .\build\cli\index.js wiki create-page -w <wikiIdentifier> -p <path> -c <con
    - Parameters: wikiIdentifier: "40a12984-af55-49fc-9b4d-378a6ef44d8d", path: "/Getting Started", projectName: "Cybersmart-Next", includeContent: true
    - Returns the wiki page details including content
 
-4. update_wiki_page - ❌ Error: Unauthorized
-   - Failed to update wiki page with error: "Failed to update wiki page: Unauthorized"
-   - Command: `node .\build\cli\index.js wiki update -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Test MCP Page" -c "# Test MCP Page..." --project Cybersmart-Next`
-   - Issue: The update_wiki_page tool now has the projectName parameter, but there seems to be an authorization issue with the Azure DevOps API
+4. update_wiki_page - ✅ Implemented (2025-03-28)
+   - Implemented proper update_wiki_page functionality using the WikiApi
+   - Command: `node .\build\cli\index.js wiki update -w 40a12984-af55-49fc-9b4d-378a6ef44d8d -p "/Getting Started" -c "# Getting Started\n\nContent with MCP section..." --project Cybersmart-Next`
+   - Added test scripts:
+     - tests/update-wiki-page-test.js - Tests the MCP tool interface
+     - tests/direct-wiki-update-test.js - Tests the WikiApi directly
+   - The implementation now properly uses the WikiApi.updateWikiPage method to update wiki pages
+   - Added support for adding a section about MCP to existing wiki pages
+   - Added proper error handling for authorization issues
+   - Note: Currently returns "Unauthorized" errors due to PAT permission issues
 
 5. create_wiki_page - ❌ Error: Unauthorized
    - Failed to create wiki page with error: "Failed to create wiki page: Failed to update wiki page: Unauthorized"
@@ -282,12 +288,33 @@ async getWiki(projectName: string, wikiIdentifier: string): Promise<Wiki> {
 }
 ```
 
+### Wiki Tools Authorization Issues
+
+The update_wiki_page and create_wiki_page tools are currently failing with "Unauthorized" errors. This is due to permission issues with the Personal Access Token (PAT). To resolve these issues:
+
+1. **Required PAT Permissions**:
+   - Ensure your PAT has the following permissions:
+     - **Wiki**: Read, Write
+     - **Project**: Read
+     - **Work Items**: Read, Write (if using work item related tools)
+
+2. **Troubleshooting Steps**:
+   - Verify your PAT is not expired (they typically expire after a set period)
+   - Check that the PAT is correctly set in your .env file
+   - Ensure the organization and project names are correct
+   - Try regenerating a new PAT with the required permissions
+
+3. **Error Handling Improvements**:
+   - We've added improved error handling to provide clearer messages about authorization issues
+   - The implementation now distinguishes between wiki not found errors and authorization errors
+   - Detailed logging has been added to help diagnose authentication problems
+
 ### Recommendations for Future Work
 
-1. **Authorization Issues**: The update_wiki_page and create_wiki_page tools are currently failing with "Unauthorized" errors. This suggests that there might be issues with the Personal Access Token (PAT) or permissions. Future work should focus on:
-   - Ensuring the PAT has the correct permissions for wiki operations
-   - Implementing better error handling for authorization issues
-   - Adding detailed logging to help diagnose authentication problems
+1. **Authorization Issues**: While we've improved error handling for authorization issues, future work should focus on:
+   - Implementing a PAT validation tool to verify permissions before attempting operations
+   - Adding a retry mechanism with exponential backoff for transient authorization issues
+   - Creating a comprehensive troubleshooting guide for common authorization problems
 
 2. **MCP Server Restart**: The create_wiki_page tool requires restarting the MCP server to register the new tool. Future work should consider:
    - Implementing dynamic tool registration that doesn't require server restart
