@@ -138,6 +138,12 @@ class AzureDevOpsServer {
           case 'update_work_item':
             result = await tools.workItem.updateWorkItem(request.params.arguments);
             break;
+          case 'add_work_item_comment':
+            result = await tools.workItem.addWorkItemComment(request.params.arguments);
+            break;
+          case 'get_work_item_comments':
+            result = await tools.workItem.getWorkItemComments(request.params.arguments);
+            break;
           
           // Board Tools
           case 'get_boards':

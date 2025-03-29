@@ -108,6 +108,8 @@ Replace the following values:
 - `create_work_item`: Create a new work item (Bug, Task, User Story)
 - `update_work_item`: Update an existing work item
 - `search_work_items`: Search for work items using text search
+- `add_work_item_comment`: Add a comment to a work item
+- `get_work_item_comments`: Get comments from a work item
 
 ### Boards
 - `get_boards`: Get available boards in the project
@@ -160,6 +162,12 @@ node .\build\cli\index.js work-item search -s "bug"
 
 # Create a new task
 node .\build\cli\index.js work-item create -t "Task" -d '[{"op":"add","path":"/fields/System.Title","value":"New Task"}]'
+
+# Add a comment to a work item
+node .\build\cli\index.js work-item add-comment -i 42 -t "This is a comment added via CLI"
+
+# Get comments from a work item
+node .\build\cli\index.js work-item get-comments -i 42
 ```
 
 #### Wiki

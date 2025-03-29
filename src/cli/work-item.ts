@@ -155,4 +155,52 @@ export function workItemCommands(program: Command): void {
         process.exit(1);
       }
     });
+
+  // Add a comment to a work item
+  workItem
+    .command('add-comment')
+    .description('Add a comment to a work item')
+    .requiredOption('-i, --id <id>', 'ID of the work item to comment on')
+    .requiredOption('-t, --text <text>', 'Comment text')
+    .option('-p, --project <projectName>', 'Project name (defaults to the one in config)')
+    .action(async (options) => {
+      try {
+        const config = createConfig();
+        const tools = workItemTools.initialize(config);
+        
+        const result = await tools.addWorkItemComment({
+          id: parseInt(options.id, 10),
+          text: options.text
+        });
+        
+        // Ensure we're outputting valid JSON
+        console.log(JSON.stringify(result, null, 2));
+      } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // Get comments from a work item
+  workItem
+    .command('get-comments')
+    .description('Get comments from a work item')
+    .requiredOption('-i, --id <id>', 'ID of the work item to get comments from')
+    .option('-p, --project <projectName>', 'Project name (defaults to the one in config)')
+    .action(async (options) => {
+      try {
+        const config = createConfig();
+        const tools = workItemTools.initialize(config);
+        
+        const result = await tools.getWorkItemComments({
+          id: parseInt(options.id, 10)
+        });
+        
+        // Ensure we're outputting valid JSON
+        console.log(JSON.stringify(result, null, 2));
+      } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
 }
