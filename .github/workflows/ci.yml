@@ -7,6 +7,8 @@ on:
     branches: [master]
     tags:
       - 'v*'  # Run workflow on version tags (v1.0.0, etc.)
+  workflow_dispatch:
+    # Allows manual triggering
 
 jobs:
   build:
