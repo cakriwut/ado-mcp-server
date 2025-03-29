@@ -28,7 +28,7 @@ async function testListProjects() {
 async function runTests() {
   try {
     // Uncomment the test you want to run
-    // await testListProjects();
+    await testListProjects();
     
     console.log('All project tool tests completed');
   } catch (error) {
