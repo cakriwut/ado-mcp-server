@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ main ]
   push:
-    branches: [master]
+    branches: [ main ]
     tags:
       - 'v*'  # Run workflow on version tags (v1.0.0, etc.)
   workflow_dispatch:
