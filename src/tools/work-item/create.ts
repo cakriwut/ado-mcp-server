@@ -19,11 +19,39 @@ export async function createWorkItem(args: { type: string; document: JsonPatchOp
     args.type
   );
 
+  // Filter CreatedBy and AssignedTo to only include specific fields
+  const filterPerson = (person: any) => {
+    if (!person) return null;
+    return {
+      displayName: person.displayName,
+      id: person.id,
+      url: person.url,
+      uniqueName: person.uniqueName,
+      descriptor: person.descriptor
+    };
+  };
+
+  // Extract only the requested fields
+  const filteredWorkItem = {
+    id: workItem.id,
+    rev: workItem.rev,
+    TeamProject: workItem.fields?.['System.TeamProject'],
+    Area: workItem.fields?.['System.AreaPath'],
+    Iteration: workItem.fields?.['System.IterationPath'],
+    Title: workItem.fields?.['System.Title'],
+    Description: workItem.fields?.['System.Description'],
+    State: workItem.fields?.['System.State'],
+    Url: workItem.url,
+    CreatedBy: filterPerson(workItem.fields?.['System.CreatedBy']),
+    CreatedDate: workItem.fields?.['System.CreatedDate'],
+    AssignedTo: filterPerson(workItem.fields?.['System.AssignedTo'])
+  };
+
   return {
     content: [
       {
         type: 'text',
-        text: JSON.stringify(workItem, null, 2),
+        text: JSON.stringify(filteredWorkItem, null, 2),
       },
     ],
   };

@@ -210,16 +210,22 @@ These improvements make the Work Item CLI commands fully functional and reliable
 #### 3. create_work_item
 ✅ **Success**
 - Tool: `create_work_item`
-- Arguments: `{ "type": "Task", "document": [{"op":"add","path":"/fields/System.Title","value":"Test Task Created by MCP Tool"},{"op":"add","path":"/fields/System.Description","value":"This is a test task created by the MCP tool test"},{"op":"add","path":"/fields/System.Tags","value":"Test;MCP;Automation"}] }`
+- Arguments: `{ "type": "Task", "document": [{"op":"add","path":"/fields/System.Title","value":"Test Task with Filtered Person Fields"},{"op":"add","path":"/fields/System.Description","value":"This is a test task with filtered person fields in the response"},{"op":"add","path":"/fields/System.Tags","value":"Test;Filtered;Person"}] }`
 - Result: Successfully created a new work item
-- Returns the created work item object with assigned ID and all fields
+- Returns a filtered work item object with only the specified fields:
+  - id, rev, TeamProject, Area, Iteration, Title, Description, State, Url, CreatedDate
+  - CreatedBy and AssignedTo fields are further filtered to include only:
+    - displayName, id, url, uniqueName, descriptor
 
 #### 4. update_work_item
 ✅ **Success**
 - Tool: `update_work_item`
-- Arguments: `{ "id": 17521, "document": [{"op":"replace","path":"/fields/System.Title","value":"Updated Test Task by MCP Tool"},{"op":"replace","path":"/fields/System.Description","value":"This is a test task updated by the MCP tool test"}] }`
+- Arguments: `{ "id": 17526, "document": [{"op":"replace","path":"/fields/System.Title","value":"Updated Test Task with Filtered Person Fields"},{"op":"replace","path":"/fields/System.Description","value":"This is a test task updated with filtered person fields in the response"},{"op":"replace","path":"/fields/System.State","value":"Active"}] }`
 - Result: Successfully updated the work item
-- Returns the updated work item object with the new field values
+- Returns a filtered work item object with only the specified fields:
+  - id, rev, TeamProject, Area, Iteration, Title, Description, State, Url, CreatedDate
+  - CreatedBy and AssignedTo fields are further filtered to include only:
+    - displayName, id, url, uniqueName, descriptor
 
 #### Fixed Issues
 - Added missing tools to src/index.ts switch statement:
@@ -227,7 +233,10 @@ These improvements make the Work Item CLI commands fully functional and reliable
   - create_work_item
   - update_work_item
 - These tools were already defined in src/tools/work-item/index.ts but were not registered in the main switch statement
-- After fixing, all work item tools are now working correctly through both CLI and MCP interfaces
+- Modified create_work_item and update_work_item to return only the specified fields instead of the full work item object:
+  - Filtered to include only essential fields: id, rev, TeamProject, Area, Iteration, Title, Description, State, Url, CreatedDate
+  - Further filtered CreatedBy and AssignedTo fields to include only: displayName, id, url, uniqueName, descriptor
+- After fixing, all work item tools are now working correctly through both CLI and MCP interfaces with improved response formatting
 
 ### Wiki Tools Test (2025-03-28) - Latest MCP Tool Test Results
 1. get_wikis - ✅ Success
