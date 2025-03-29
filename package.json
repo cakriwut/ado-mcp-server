@@ -3,7 +3,7 @@
   "license": "MIT",
   "version": "1.0.0",
   "description": "A Model Context Protocol server",
-  "private": true,
+  "private": false,
   "type": "module",
   "bin": {
     "azure-devops-server": "./build/index.js",
