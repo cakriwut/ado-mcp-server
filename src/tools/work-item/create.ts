@@ -16,7 +16,7 @@ export async function createWorkItem(args: { type: string; document: JsonPatchOp
   // Process escape sequences in text fields of the document
   const processedDocument = args.document.map(operation => {
     // Check if the operation type is add or replace
-    if (operation.op && (operation.op === 'add' || operation.op === 'replace')) {
+    if (operation.op && (String(operation.op) === 'add' || String(operation.op) === 'replace')) {
       // Check if the value is a string and process escape sequences
       if (typeof operation.value === 'string') {
         return {

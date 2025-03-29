@@ -6,6 +6,8 @@
 - [X] create_work_item
 - [X] update_work_item
 - [X] search_work_items
+- [X] add_work_item_comment
+- [X] get_work_item_comments
 
 ## Board Tools
 - [X] get_boards
@@ -153,6 +155,12 @@ node .\build\cli\index.js work-item search -s "feature" -t 10 --skip 10
 
 # Search in a specific project
 node .\build\cli\index.js work-item search -s "documentation" -p "MyProject"
+
+# Add a comment to a work item
+node .\build\cli\index.js work-item add-comment -i 42 -t "This is a comment added via CLI"
+
+# Get comments from a work item
+node .\build\cli\index.js work-item get-comments -i 42
 ```
 
 ### Work Item CLI Test Results (2025-03-28)
@@ -226,6 +234,46 @@ These improvements make the Work Item CLI commands fully functional and reliable
   - id, rev, TeamProject, Area, Iteration, Title, Description, State, Url, CreatedDate
   - CreatedBy and AssignedTo fields are further filtered to include only:
     - displayName, id, url, uniqueName, descriptor
+
+#### 5. add_work_item_comment
+✅ **Success**
+- Tool: `add_work_item_comment`
+- Arguments: `{ "id": 52, "text": "This is another test comment added via the MCP tool API" }`
+- Result: Successfully added a comment to the work item
+- Returns the comment object with:
+  - id, text, workItemId, createdBy (displayName, id, uniqueName), createdDate, url
+
+#### 6. get_work_item_comments
+✅ **Success**
+- Tool: `get_work_item_comments`
+- Arguments: `{ "id": 52 }`
+- Result: Successfully retrieved comments from the work item
+- Returns an object containing:
+  - count: Total number of comments
+  - comments: Array of comment objects with id, text, workItemId, createdBy, createdDate, url
+
+### Work Item Comment Tools Test Results (2025-03-29)
+
+#### 1. CLI Command: add-comment
+✅ **Success**
+- Command: `node .\build\cli\index.js work-item add-comment -i 52 -t "This is a test comment added via the MCP tool"`
+- Result: Successfully added a comment to work item 52
+- Returns the comment object with ID, text, work item ID, creator information, creation date, and URL
+
+#### 2. CLI Command: get-comments
+✅ **Success**
+- Command: `node .\build\cli\index.js work-item get-comments -i 52`
+- Result: Successfully retrieved comments from work item 52
+- Returns an object with count of comments and an array of comment objects
+
+#### 3. Complete Workflow Test
+✅ **Success**
+- Added comments to work item 52 using both CLI and MCP tool interfaces
+- Retrieved comments from work item 52 using both CLI and MCP tool interfaces
+- Verified that the comments were correctly added and retrieved
+- All operations completed successfully with proper formatting of response data
+
+These improvements make the Work Item Comment tools fully functional and reliable for use in managing Azure DevOps work item comments.
 
 #### Fixed Issues
 - Added missing tools to src/index.ts switch statement:
