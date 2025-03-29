@@ -3,6 +3,8 @@ import { listWorkItems, WorkItemListArgs } from './list.js';
 import { createWorkItem } from './create.js';
 import { updateWorkItem } from './update.js';
 import { searchWorkItems, SearchWorkItemsArgs } from './search.js';
+import { addWorkItemComment } from './add-comment.js';
+import { getWorkItemComments } from './get-comments.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
 import type { WorkItem, WorkItemBatchGetRequest, Wiql } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js';
 import type { JsonPatchOperation } from 'azure-devops-node-api/interfaces/common/VSSInterfaces.js';
@@ -45,6 +47,38 @@ const definitions = [
         }
       },
       required: ['ids'],
+    },
+  },
+  {
+    name: 'add_work_item_comment',
+    description: 'Add a comment to a work item',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'number',
+          description: 'Work item ID',
+        },
+        text: {
+          type: 'string',
+          description: 'Comment text',
+        },
+      },
+      required: ['id', 'text'],
+    },
+  },
+  {
+    name: 'get_work_item_comments',
+    description: 'Get comments from a work item',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'number',
+          description: 'Work item ID',
+        },
+      },
+      required: ['id'],
     },
   },
   {
@@ -168,6 +202,8 @@ export const workItemTools = {
     createWorkItem: (args: { type: string; document: JsonPatchOperation[] }) => createWorkItem(args, config),
     updateWorkItem: (args: { id: number; document: JsonPatchOperation[] }) => updateWorkItem(args, config),
     searchWorkItems: (args: SearchWorkItemsArgs) => searchWorkItems(args, config),
+    addWorkItemComment: (args: { id: number; text: string }) => addWorkItemComment(args, config),
+    getWorkItemComments: (args: { id: number }) => getWorkItemComments(args, config),
     definitions,
   }),
   definitions,
