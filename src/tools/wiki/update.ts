@@ -1,6 +1,7 @@
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { AzureDevOpsConnection } from '../../api/connection.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
+import { processEscapeSequences } from '../../utils/index.js';
 import fetch from 'node-fetch';
 
 interface UpdateWikiPageArgs {
@@ -86,6 +87,11 @@ export async function updateWikiPage(args: UpdateWikiPageArgs, config: AzureDevO
         headers['If-Match'] = etag;
       }
       
+      // Process escape sequences in the content
+      const processedContent = processEscapeSequences(args.content);
+      
+      console.log(`Processing content with escape sequences. Original length: ${args.content.length}, Processed length: ${processedContent.length}`);
+      
       // Make the update request
       const updateResponse = await fetch(
         `${baseUrl}/pages?path=${encodedPath}&api-version=7.0`,
@@ -93,7 +99,7 @@ export async function updateWikiPage(args: UpdateWikiPageArgs, config: AzureDevO
           method: 'PUT',
           headers,
           body: JSON.stringify({
-            content: args.content,
+            content: processedContent,
             comment: args.comment || `Updated page ${args.path}`
           })
         }

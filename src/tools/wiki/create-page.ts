@@ -2,6 +2,7 @@ import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { AzureDevOpsConnection } from '../../api/connection.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
 import { WikiApi } from '../../api/wiki.js';
+import { processEscapeSequences } from '../../utils/index.js';
 
 interface CreateWikiPageArgs {
   wikiIdentifier: string;
@@ -29,12 +30,17 @@ export async function createWikiPage(args: CreateWikiPageArgs, config: AzureDevO
     // We'll directly try to create/update the page
     // If the wiki doesn't exist, the updateWikiPage method will throw an appropriate error
     
+    // Process escape sequences in the content
+    const processedContent = processEscapeSequences(args.content);
+    
+    console.log(`Processing content with escape sequences. Original length: ${args.content.length}, Processed length: ${processedContent.length}`);
+    
     // Use the updateWikiPage method to create a new page
     // In Azure DevOps, the PUT operation will create the page if it doesn't exist
     const createdPage = await wikiApi.updateWikiPage(
       args.wikiIdentifier,
       args.path,
-      args.content,
+      processedContent,
       args.comment || `Created page ${args.path}`
     );
     

@@ -2,6 +2,7 @@ import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { AzureDevOpsConnection } from '../../api/connection.js';
 import { AzureDevOpsConfig } from '../../config/environment.js';
 import { JsonPatchOperation } from 'azure-devops-node-api/interfaces/common/VSSInterfaces.js';
+import { processEscapeSequences } from '../../utils/index.js';
 
 export async function createWorkItem(args: { type: string; document: JsonPatchOperation[] }, config: AzureDevOpsConfig) {
   if (!args.type || !args.document || !args.document.length) {
@@ -12,9 +13,26 @@ export async function createWorkItem(args: { type: string; document: JsonPatchOp
   const connection = AzureDevOpsConnection.getInstance();
   const workItemTrackingApi = await connection.getWorkItemTrackingApi();
 
+  // Process escape sequences in text fields of the document
+  const processedDocument = args.document.map(operation => {
+    // Check if the operation type is add or replace
+    if (operation.op && (operation.op === 'add' || operation.op === 'replace')) {
+      // Check if the value is a string and process escape sequences
+      if (typeof operation.value === 'string') {
+        return {
+          ...operation,
+          value: processEscapeSequences(operation.value)
+        };
+      }
+    }
+    return operation;
+  });
+
+  console.log('Processing escape sequences in work item document');
+
   const workItem = await workItemTrackingApi.createWorkItem(
     undefined,
-    args.document,
+    processedDocument,
     config.project,
     args.type
   );

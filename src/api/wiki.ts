@@ -1,6 +1,7 @@
 import { WebApi } from 'azure-devops-node-api';
 import { AzureDevOpsConfig } from '../config/environment.js';
 import { WikiError, WikiNotFoundError, WikiPageNotFoundError } from '../errors.js';
+import { processEscapeSequences } from '../utils/index.js';
 import fetch from 'node-fetch';
 import type { Wiki, WikiPage, WikiPageResponse, WikiType, WikiCreateParameters, WikiPageCreateOrUpdateParameters } from 'azure-devops-node-api/interfaces/WikiInterfaces.js';
 
@@ -243,6 +244,11 @@ export class WikiApi {
     
     console.log(`Updating wiki page at URL: ${url}`);
     
+    // Process escape sequences in the content
+    const processedContent = processEscapeSequences(content);
+    
+    console.log(`Processing content with escape sequences. Original length: ${content.length}, Processed length: ${processedContent.length}`);
+    
     const response = await fetch(
       url,
       {
@@ -252,7 +258,7 @@ export class WikiApi {
           Authorization: authHeader,
         },
         body: JSON.stringify({
-          content,
+          content: processedContent,
           comment: comment || `Updated page ${path}`,
         }),
       }
