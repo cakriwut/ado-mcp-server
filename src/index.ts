@@ -129,6 +129,15 @@ class AzureDevOpsServer {
           case 'list_work_items':
             result = await tools.workItem.listWorkItems(request.params.arguments);
             break;
+          case 'search_work_items':
+            result = await tools.workItem.searchWorkItems(request.params.arguments);
+            break;
+          case 'create_work_item':
+            result = await tools.workItem.createWorkItem(request.params.arguments);
+            break;
+          case 'update_work_item':
+            result = await tools.workItem.updateWorkItem(request.params.arguments);
+            break;
           
           // Board Tools
           case 'get_boards':
@@ -139,6 +148,12 @@ class AzureDevOpsServer {
           case 'get_wikis':
             result = await tools.wiki.getWikis(request.params.arguments);
             break;
+          case 'list_wiki_pages':
+            result = await tools.wiki.listWikiPages(request.params.arguments);
+            break;
+          case 'search_wiki_page':
+            result = await tools.wiki.searchWikiPage(request.params.arguments);
+            break;
           case 'get_wiki_page':
             result = await tools.wiki.getWikiPage(request.params.arguments);
             break;
@@ -147,6 +162,9 @@ class AzureDevOpsServer {
             break;
           case 'update_wiki_page':
             result = await tools.wiki.updateWikiPage(request.params.arguments);
+            break;
+          case 'create_wiki_page':
+            result = await tools.wiki.createWikiPage(request.params.arguments);
             break;
           
           // Project Tools

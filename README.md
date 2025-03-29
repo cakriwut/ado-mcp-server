@@ -1,7 +1,11 @@
-# Azure DevOps MCP Server for Cline
-[![smithery badge](https://smithery.ai/badge/@stefanskiasan/azure-devops-mcp-server)](https://smithery.ai/server/@stefanskiasan/azure-devops-mcp-server)
+# Azure DevOps MCP (ADO-MCP-Server) for Cline
+[![smithery badge](https://smithery.ai/badge/@cakriwut/ado-mcp-server)](https://smithery.ai/server/@cakriwut/ado-mcp-server)
 
-This Model Context Protocol (MCP) server provides integration with Azure DevOps, allowing Cline to interact with Azure DevOps services.
+
+This Model Context Protocol (MCP) server provides integration with Azure DevOps, allowing Cline and Roo Code to interact with Azure DevOps services.
+
+The project repository is located at: https://github.com/cakriwut/ado-mcp-server
+
 
 ## Prerequisites
 
@@ -14,17 +18,17 @@ This Model Context Protocol (MCP) server provides integration with Azure DevOps,
 
 ### Installing via Smithery
 
-To install Azure DevOps Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@stefanskiasan/azure-devops-mcp-server):
+To install Azure DevOps MCP Server (ADO-MCP-Server) automatically via [Smithery](https://smithery.ai/server/@cakriwut/ado-mcp-server):
 
 ```bash
-npx -y @smithery/cli install @stefanskiasan/azure-devops-mcp-server --client claude
+npx -y @smithery/cli install @cakriwut/ado-mcp-server --client claude
 ```
 
 ### Manual Installation
 1. Clone this repository:
 ```bash
-git clone https://github.com/stefanskiasan/azure-devops-mcp-server.git
-cd azure-devops-mcp-server
+git clone https://github.com/cakriwut/ado-mcp-server.git
+cd ado-mcp-server
 ```
 
 2. Install dependencies:
@@ -55,21 +59,24 @@ Note: The build output (`build/` directory) is not included in version control. 
    - `Project and Team (read)` - For Project and Board information
 6. Copy the generated token
 
-### 2. Configure Cline MCP Settings
+### 2. Configure MCP Settings
 
-Add the server configuration to your Cline MCP settings file:
+Add the server configuration to your MCP settings file:
 
-- For VSCode extension: `%APPDATA%/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json`
-- For Claude desktop app: `%LOCALAPPDATA%/Claude/claude_desktop_config.json`
+#### For Roo Code (VSCode extension)
+Configuration file location: `%APPDATA%/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json`
+
+#### For Cline Desktop App
+Configuration file location: `%LOCALAPPDATA%/Claude/claude_desktop_config.json`
 
 Add the following configuration to the `mcpServers` object:
 
 ```json
 {
   "mcpServers": {
-    "azure-devops": {
+    "azure-devops-mcp-server": {
       "command": "node",
-      "args": ["/absolute/path/to/azure-devops-server/build/index.js"],
+      "args": ["C:/absolute/path/to/ado-mcp-server/build/index.js"],
       "env": {
         "AZURE_DEVOPS_ORG": "your-organization",
         "AZURE_DEVOPS_PAT": "your-personal-access-token",
@@ -83,10 +90,15 @@ Add the following configuration to the `mcpServers` object:
 ```
 
 Replace the following values:
-- `/absolute/path/to/azure-devops-server`: The absolute path to where you cloned this repository
+- `C:/absolute/path/to/ado-mcp-server`: The absolute path to where you cloned this repository (use forward slashes)
 - `your-organization`: Your Azure DevOps organization name
 - `your-project-name`: Your Azure DevOps project name
 - `your-personal-access-token`: The PAT you generated in step 1
+
+#### Important Notes for Windows Users
+- Use forward slashes (/) in the path, not backslashes (\)
+- Provide the full absolute path to the build/index.js file
+- Restart Roo Code or Cline after making changes to the configuration
 
 ## Available Tools
 
@@ -95,6 +107,7 @@ Replace the following values:
 - `list_work_items`: Query work items using WIQL
 - `create_work_item`: Create a new work item (Bug, Task, User Story)
 - `update_work_item`: Update an existing work item
+- `search_work_items`: Search for work items using text search
 
 ### Boards
 - `get_boards`: Get available boards in the project
@@ -107,16 +120,61 @@ Replace the following values:
 - `list_pull_requests`: List pull requests
 - `create_pull_request`: Create a new pull request
 - `update_pull_request`: Update a pull request
-- `get_pull_request`: Get pull request details
 
 ### Wiki
 - `get_wikis`: List all wikis in the project
-- `get_wiki_page`: Get a wiki page
+- `list_wiki_pages`: List pages in a wiki
+- `get_wiki_page`: Get a wiki page by path
 - `create_wiki`: Create a new wiki
 - `update_wiki_page`: Create or update a wiki page
+- `create_wiki_page`: Create a new wiki page
+- `search_wiki_page`: Search for pages in a wiki by text
 
 ### Projects
 - `list_projects`: List all projects in the Azure DevOps organization
+
+## Command Line Interface (CLI)
+
+ADO-MCP-Server includes a command-line interface that allows you to interact with Azure DevOps directly from the terminal. The CLI is available as `azure-devops-cli` after building the project.
+
+### Environment Setup
+
+Before using the CLI, set up your environment variables:
+
+```powershell
+# PowerShell
+$env:AZURE_DEVOPS_ORG = "your-organization"
+$env:AZURE_DEVOPS_PROJECT = "your-project-name"
+$env:AZURE_DEVOPS_PAT = "your-personal-access-token"
+```
+
+### Common CLI Commands
+
+#### Work Items
+```powershell
+# Get a work item by ID
+node .\build\cli\index.js work-item get -i 42
+
+# Search for work items
+node .\build\cli\index.js work-item search -s "bug"
+
+# Create a new task
+node .\build\cli\index.js work-item create -t "Task" -d '[{"op":"add","path":"/fields/System.Title","value":"New Task"}]'
+```
+
+#### Wiki
+```powershell
+# List all wikis in the project
+node .\build\cli\index.js wiki list
+
+# Get a wiki page
+node .\build\cli\index.js wiki page -w <wikiIdentifier> -p "/path/to/page" --include-content
+
+# Search wiki pages
+node .\build\cli\index.js wiki search -w <wikiIdentifier> -s "search term"
+```
+
+For more detailed CLI usage examples, see [docs/wiki-cli-usage.md](docs/wiki-cli-usage.md) and [docs/command-list.md](docs/command-list.md).
 
 ## Verification
 
@@ -151,6 +209,65 @@ To modify or extend the server:
 2. Run `npm run watch` for development
 3. Build with `npm run build` when ready
 4. Test using the inspector: `npm run inspector`
+
+## Testing
+
+The project includes test scripts for all MCP Server Commands. These tests help verify that the server can communicate with Azure DevOps correctly.
+
+### Prerequisites for Testing
+
+1. Make sure you have a valid `.env` file in the root directory with the following variables:
+   ```
+   AZURE_DEVOPS_ORG=your-organization
+   AZURE_DEVOPS_PROJECT=your-project
+   AZURE_DEVOPS_PAT=your-personal-access-token
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+### Running Tests
+
+#### Quick Tests
+
+For a quick test of your Azure DevOps connection:
+
+```bash
+npm run test:quick
+```
+
+This runs a simple JavaScript test that only tests the list_projects command.
+
+For a more comprehensive test of all MCP Server Commands:
+
+```bash
+npm run test:simple
+```
+
+This runs a simple JavaScript test that tests all the main commands in one file.
+
+#### TypeScript Tests
+
+To run all TypeScript tests:
+
+```bash
+npm test
+```
+
+To run tests for specific command categories:
+
+```bash
+npm run test:work-item     # Test Work Item Tools
+npm run test:board         # Test Board Tools
+npm run test:wiki          # Test Wiki Tools
+npm run test:project       # Test Project Tools
+npm run test:pipeline      # Test Pipeline Tools
+npm run test:pull-request  # Test Pull Request Tools
+```
+
+See the [tests/README.md](tests/README.md) file for more information about the tests.
 
 ## License
 
